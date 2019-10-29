@@ -1,0 +1,93 @@
+extends layout
+
+
+block layout-content
+     
+    h1.Banner Prefabulator
+        
+    nav(class="navbar navbar-expand-lg navbar-light bg-light w-100" role="navgiation")
+        ul(class="container")
+            li#ControlsNavLi(class="topnav navbar-brand col text-center active")
+                a#ControlsNav Control
+            li#SelectNavLi(class="topnav navbar-brand col text-center")
+                a#SelectNav Select
+            li#SearchNavLi(class="topnav navbar-brand col text-center")
+                a#SearchNav Search                      
+
+    div(class="container")
+        span#ClosestPrefab(class="col text-truncate") Selected: 
+            label#selectedPrefab 
+                if selectedPrefab
+                    b #{selectedPrefab}
+                else
+                    b None selected
+    div#Controls.Message(class="container")
+        div.ContentRow(class="row")
+            a#turnleft.Controls(class="col text-center text-truncate") Turn Left
+            a#up.Controls(class="col text-center text-truncate") UP
+            a#turnright.Controls(class="col text-center text-truncate") Turn Right
+        div.ContentRow(class="row")
+            a#left.Controls(class="col text-center text-truncate") LEFT
+            a#look-at.Controls(class="col text-center text-truncate") LOOK-AT
+            a#right.Controls(class="col text-center text-truncate") RIGHT
+        div.ContentRow(class="row")
+            a#pitchup.Controls(class="col text-center text-truncate") Pitch Up
+            a#down.Controls(class="col text-center text-truncate") DOWN
+            a#pitchdown.Controls(class="col text-center text-truncate") Pitch Down
+
+        div.ContentRow(class="row")
+            a#forward.ControlsMini(class="col text-center") Move Forward
+            a#back.ControlsMini(class="col text-center") Move Backward
+
+        div.ContentRow(class="row")
+            a#spinccw.ControlsMini(class="col text-center") Spin CCW
+            a#snap-ground.ControlsMini(class="col text-center") Snap Ground
+            a#spincw.ControlsMini(class="col text-center") Spin CW
+        hr
+
+        div.ContentRow(class="row")
+            span.ControlsLabel(class="col text-right align-middle") Rotation: 
+            a#RotateAngle1.ControlsMini(class="rotateangle col text-center") 1&deg;
+            a#RotateAngle10.ControlsMini(class="rotateangle col text-center active") 10&deg;
+            a#RotateAngle45.ControlsMini(class="rotateangle col text-center") 45&deg;
+            a#RotateAngle90.ControlsMini(class="rotateangle col text-center") 90&deg;
+
+        div.ContentRow(class="row")
+            span.ControlsLabel(class="col text-right align-middle") Distance: 
+            a#Distance1cm.ControlsMini(class="distancemag col text-center") 0.01m
+            a#Distance10cm.ControlsMini(class="distancemag col text-center active") 0.1m
+            a#Distance1m.ControlsMini(class="distancemag col text-center") 1m
+            a#Distance10m.ControlsMini(class="distancemag col text-center") 10m
+            
+
+    div#Select.Message(class="container hidden")
+        div.ContentRow(class="row")
+            a#SelectFind.Controls(class="col text-center") Find Nearby Items 
+        div.ContentRow(class="row")
+            div#SelectFindItems(class="list-group")
+        
+
+    div#Search.Message(class="container hidden")
+        div.ContentRow(class="row")
+            div.Controls(class="col")
+                input#SearchNearestItems.form-control(type="text" placeholder="Search Prefabs")
+
+        div.ContentRow(class="row")
+            div#SelectNearestItems(class="list-group")
+                each item in spawnableItems
+                    button(class="FindablePrefab list-group-item list-group-item-action text-left" id=item.hash name=item.name) #{item.hash} - #{item.name}
+
+        div.ContentRow(class="row")
+            a#SearchFindNearest.ControlsMini(class="col text-center") Find Nearest
+            a#SearchSpawnItem.ControlsMini(class="col text-center") Spawn Item
+
+    footer(class="footer mt-auto py-3")
+        div.ContentRow(class="container" style="padding: 3px")
+            span(class="col align-middle") Connected to:
+            span#ConnectedTo(class="col text-center align-middle")
+                b#ServerName #{serverName}
+        nav(class="navbar navbar-bottom navbar-expand-lg navbar-light bg-light")
+            ul(class="container")
+                li#Logout(class="navbar-brand col text-center")
+                    a(href="/login") Logout
+            

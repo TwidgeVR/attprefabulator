@@ -1,0 +1,18 @@
+extends layout
+
+
+block layout-content
+    div.View.UserView
+        h1.Banner Server Select
+        div.Message
+            div.Title
+                form(method='POST' action='/servers')
+                    #error
+                        if error
+                            p.text-danger #{error}
+                    div.form-group
+                        label(for="selectServer") Select a Server:
+                        select#selectServer.form-control(name="selectServer")
+                            each server in serverList
+                                option(value=server.id) #{server.name}
+                    button.btn.btn-primary(type="submit") Connect
