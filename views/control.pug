@@ -21,6 +21,8 @@ block layout-content
                     b #{selectedPrefab}
                 else
                     b None selected
+        a#DestroySelectedPrefab(class="col text-center")
+            i(class="fas fa-trash-alt", alt="Delete Selected Prefab")
     div#Controls.Message(class="container")
         div.ContentRow(class="row")
             a#turnleft.Controls(class="col text-center text-truncate") Turn Left

@@ -292,6 +292,22 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 }
                 await att_connection.send( command )
             break;
+
+            case "destroy_prefab":
+                command = "select destroy"
+                console.log( command )
+                att_connection.onMessage = ( message ) => {
+                    console.log( message )
+                    if ( message.data.ResultString == 'Success' )
+                    {
+                        response = { "result" : 'Success' }
+                    } else {
+                        response = { "result" : 'Fail' }
+                    }
+                    res.send( response )
+                }
+                await att_connection.send( command )
+            break;
         }
     } else {
         console.log("not authenticated")

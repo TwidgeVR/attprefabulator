@@ -58,6 +58,8 @@ $(document).ready(() => {
         $(e.target).toggleClass("active")
     })
 
+    $("#DestroySelectedPrefab").click( () => deletePrefab( $("#ClosestPrefab b")) )
+
     $("#SelectFind").click( () => selectFind( $("#SelectFindItems")) )
 
     $("#SelectFindItems").on( 'click', '.SelectablePrefab', (e) => { 
@@ -96,6 +98,19 @@ $(document).ready(() => {
     })
 })
 
+function deletePrefab( selectDisplay ) {
+    $.ajax({
+        type: 'post',
+        url: '/ajax',
+        data: {'action': 'destroy_prefab'},
+        dataType: 'json'
+    })
+    .done( (data) => {
+        $(selectDisplay).html("None selected")
+        $('#DestroySelectedPrefab').hide()
+    })
+}
+
 function selectPrefabById( id, name, selectDisplay ) {
     $.ajax({
         type:'post',
@@ -105,6 +120,7 @@ function selectPrefabById( id, name, selectDisplay ) {
     })
     .done( (data) => {
         $(selectDisplay).html( data.selectedPrefab )
+        $('#DestroySelectedPrefab').show()
     })
 }
 
@@ -129,6 +145,7 @@ function findNearestPrefabById( id, selectDisplay ) {
             })
             .done( (data) => {
                 $(selectDisplay).html( data.selectedPrefab )
+                $('#DestroySelectedPrefab').show()
             })
         } else {
             let color = "255, 20, 20"
@@ -146,7 +163,6 @@ function spawnPrefab( id, selectDisplay ) {
         dataType: 'json'
     })
     .done( (data) => {
-        console.log( data )
         if ( data.result == 'Success' )
         {
             let color = "20, 255, 20"
@@ -159,6 +175,7 @@ function spawnPrefab( id, selectDisplay ) {
             })
             .done( (data) => {
                 $(selectDisplay).html( data.selectedPrefab )
+                $('#DestroySelectedPrefab').show()
             })
         } else {
             let color = "255, 20, 20"
@@ -177,10 +194,9 @@ function selectFind( e ) {
         dataType: 'json'
     })
     .done( (data) => {
-        console.log( data.result )
         if ( data.result !== undefined )
         {
-            $("#SelectFind").remove($(".SelectablePrefab"))
+            $(".SelectablePrefab").remove()
             for( var i = 0; i < data.result.length; i++ ){
                 let item = data.result[i]
                 $(e).append("<button class='SelectablePrefab list-group-item list-group-item-action' id='"+ item.Identifier +"' name='"+ item.Name +"'> "+ item.Identifier +" - "+ item.Name +"</button>")
