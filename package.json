@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/edencomputing/attprefabulator#readme",
   "dependencies": {
-    "alta-jsapi": "git+https://github.com/edencomputing/alta-jsapi.git",
+    "alta-jsapi": "git+https://github.com/alta-vr/alta-jsapi.git",
     "att-bot-core": "git+https://github.com/alta-vr/ATT-Bot-JS.git",
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.4",

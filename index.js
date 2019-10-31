@@ -23,9 +23,6 @@ var att_connection = []
 var att_sessions = []
 var att_servers = []
 
-class ServerInstance {
-}
-
 //Utility helper functions and prototypes
 function ts()
 { 
@@ -45,6 +42,8 @@ function setConnection( req, Connection )
 function setATTSession( req )
 {
     var { Sessions, Servers } = require('alta-jsapi')
+    // requires are cached which prevents instantiation
+    // so remove the cache entry after loading
     delete require.cache[require.resolve('alta-jsapi')]
     
     att_sessions[ req.sessionID ] = Sessions
