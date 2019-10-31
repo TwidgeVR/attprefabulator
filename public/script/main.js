@@ -8,9 +8,9 @@ $(document).ready(() => {
     $("#look-at").click( () => controlClick( 'look-at', null, $("#look-at") ))
     $("#right").click( () => controlClick( 'move', 'right', $("#right") ))
 
-    $("#pitchup").click( () => controlClick( 'pitch', 'up', $("#pitchup") ))
+    $("#pitchup").click( () => controlClick( 'pitch', 'ccw', $("#pitchup") ))
     $("#down").click( () => controlClick( 'move', 'down', $("#down") ))
-    $("#pitchdown").click( () => controlClick( 'pitch', 'down', $("#pitchdown") ))
+    $("#pitchdown").click( () => controlClick( 'pitch', 'cw', $("#pitchdown") ))
 
     $("#forward").click( () => controlClick( 'move', 'forward', $("#forward") ))
     $("#back").click( () => controlClick( 'move', 'back', $("#back") ))
