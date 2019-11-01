@@ -6,10 +6,13 @@ This browser based application gives a click-driven abstraction to the A Townshi
 
 
 ### Release Notes
+
+- v1.0.1  - Should support multiple people using it on the same server without select collision
+
 - v1.0.0  - The first version!  PREFABULATOR supports spawning new objects, moving them around, finding nearby objects, and selecting the nearest object of a specific kind
 
 #### Known issues:
-- can only be used by one person at a time on each server, one person selecting items breaks the other player's selections
+- ~~can only be used by one person at a time on each server, one person selecting items breaks the other player's selections~~
 
 
 ## Usage 
