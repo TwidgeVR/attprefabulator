@@ -1,6 +1,3 @@
-// Load required classes for ATT
-const { Sessions, Servers } = require('alta-jsapi')
-const { Connection, Message } = require('att-websockets')
 const moment = require('moment')
 const sha512 = require('crypto-js/sha512')
 
@@ -34,9 +31,19 @@ function getConnection( req )
     return ( !!att_connection[req.sessionID] ) ? att_connection[req.sessionID] : undefined
 }
 
-function setConnection( req, Connection )
+function setConnection( req, serverName )
 {
-    att_connection[ req.sessionID ] = Connection
+    var { Connection } = require('att-websockets')
+    // requires are cached which prevents instantiation
+    // so remove the cache entry after loading
+    delete require.cache[require.resolve('att-websockets')]
+
+    att_connection[ req.sessionID ] = new Connection( serverName )
+
+    att_connection[ req.sessionID ].onError = ( e ) => {
+        console.log( e )
+        throw( e )
+    }
 }
 
 function setATTSession( req )
@@ -150,7 +157,7 @@ server.post('/servers', asyncMid( async(req, res, next) =>{
             if ( details.allowed )
             {
                 console.log("Connected to server: "+ selectedServer.name )
-                setConnection( req, new Connection(selectedServer.name) )
+                setConnection( req, selectedServer.name )
                 await getConnection(req).connect( details.connection.address, details.connection.websocket_port, details.token )
                 res.redirect('/control?serverName='+ selectedServer.name )
                 return
@@ -200,218 +207,119 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
     console.log( req.body )
     let response = {}
     let command = undefined;
+    let responseSent = false;
     if ( authenticated( req ) )
     {
-        switch( req.body.action )
-        {
-            case "set_angle":
-                req.session.rotateAngle = req.body.angle;
-                console.log("new rotateAngle: "+ req.session.rotateAngle )
-                response = { "result": "OK"}
-                res.send( response )
-            break;
-
-            case "set_distance":
-                req.session.distanceMag = req.body.magnitude
-                console.log("new distance magnitude: "+ req.session.distanceMag)
-                response = { "result": "OK"}
-                res.send( response )
-            break;
-
-            case "move":
-                let mdirection = req.body.direction;
-                command = "select move "+ mdirection +" "+ req.session.distanceMag
-                console.log( command )
-                if ( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        response = { "result": "OK"}
-                        res.send( response )
+        try {
+            if ( !!getConnection(req) )
+            {
+                getConnection(req).onMessage = ( message ) => {
+                    console.log( message )
+                    let data = {}
+                    if ( !!message.data )
+                    {
+                        data = message.data
                     }
+                    let result = ( !!message.data.Exception ) ? 'Fail' : 'OK'
+                    response = {
+                        'result' : result,
+                        'data' : data
+                    }
+                    if ( !responseSent )
+                    {
+                        responseSent = true;
+                        return res.send( response )
+                    }
+                }
+            } else {
+                return res.send({ 'result' : 'Fail' })
+            }
+
+            switch( req.body.action )
+            {
+                case "set_angle":
+                    req.session.rotateAngle = req.body.angle;
+                    console.log("new rotateAngle: "+ req.session.rotateAngle )
+                    response = { "result": "OK"}
+                    res.send( response )
+                return;
+
+                case "set_distance":
+                    req.session.distanceMag = req.body.magnitude
+                    console.log("new distance magnitude: "+ req.session.distanceMag)
+                    response = { "result": "OK"}
+                    res.send( response )
+                return;
+
+                case "move":
+                    let mdirection = req.body.direction;
+                    command = "select move "+ mdirection +" "+ req.session.distanceMag
+                    console.log( command )
+                    await getConnection(req).send( command )
+                return;
+
+                case "rotate":
+                    let raxis = ( req.body.axis === undefined ) ? 'yaw' : req.body.axis;
+                    let rotateAngle = ( req.body.direction == 'ccw') ? 360 + ( -1 * req.session.rotateAngle ): req.session.rotateAngle;
+                    command = "select rotate "+ raxis +" "+ rotateAngle
+                    console.log( command )
                     await getConnection(req).send( command )                
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
+                return;
 
-            case "rotate":
-                let raxis = ( req.body.axis === undefined ) ? 'yaw' : req.body.axis;
-                let rotateAngle = ( req.body.direction == 'ccw') ? -1 * req.session.rotateAngle : req.session.rotateAngle;
-                command = "select rotate "+ raxis +" "+ rotateAngle
-                console.log( command )
-                if ( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        response = { "result": "OK"}
-                        res.send( response )
-                    }
-                    await getConnection(req).send( command )                
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
-
-            case "look-at":
-                command = "select look-at "+ getATTSession(req).getUsername()
-                console.log( command )
-                response = { "result": "OK" }
-                if( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        response = { "result": "OK"}
-                        res.send( response )
-                    }
+                case "look-at":
+                    command = "select look-at "+ getATTSession(req).getUsername()
+                    console.log( command )
+                    response = { "result": "OK" }
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
+                return;
 
-            case "snap-ground":
-                command = "select snap-ground"
-                console.log( command )
-                if ( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        response = { "result": "OK"}
-                        res.send( response )
-                    }
+                case "snap-ground":
+                    command = "select snap-ground"
+                    console.log( command )
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
+                return;
 
-            case "select_find":
-                let distance = 20;
-                command = "select find "+ getATTSession(req).getUsername() +" "+ distance 
-                if ( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        res.send( { result: message.data.Result } )
-                    }
+                case "select_find":
+                    let distance = 20;
+                    command = "select find "+ getATTSession(req).getUsername() +" "+ distance 
+                    console.log( command )
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
+                return;
 
-            case "select_prefab":
-                console.log("select prefab")
-                command = "select "+ req.body.prefabId 
-                console.log( command )
-                if ( !!getConnection(req ) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        if ( message.data.ResultString == 'Success' )
-                            response = { "selectedPrefab" : req.body.prefabId +" - "+ req.body.prefabName }
-                        else 
-                            response = { "selectedPrefab" : "None selected"}
-                        res.send( response )
-                    }
+                case "select_prefab":
+                    command = "select "+ req.body.prefabId 
+                    console.log( command )
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
+                return;
 
-            // Expects a hash ID from 'spawn list' command
-            case "select_nearest":
-                console.log("select nearest")
-                command = "select prefab "+ req.body.hash +" "+ getATTSession(req).getUsername()
-                console.log( command )
-                if ( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        if ( message.data.ResultString == 'Success' )
-                        {
-                            response = { "result" : 'Success' }
-                        } else {
-                            response = { "result" : 'Fail' }
-                        }
-                        res.send( response )
-                    }
+                // Expects a hash ID from 'spawn list' command
+                case "select_nearest":
+                    console.log("select nearest")
+                    command = "select prefab "+ req.body.hash +" "+ getATTSession(req).getUsername()
+                    console.log( command )
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
+                return;
 
-            case "select_get":
-                console.log( "select get" )
-                command = "select get"
-                if ( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message)
-                        response = { "selectedPrefab" : message.data.ResultString }
-                        res.send( response)
-                    }
+                case "select_get":
+                    console.log( "select get" )
+                    command = "select get"
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
+                return;
 
-            break;
-
-            case "spawn_prefab":
-                command = "spawn "+ getATTSession(req).getUsername() +" "+ req.body.hash
-                console.log( command )
-                if ( !!getConnection(req) )
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        if ( message.data.ResultString == 'Success' )
-                        {
-                            response = { "result" : 'Success' }
-                        } else {
-                            response = { "result" : 'Fail' }
-                        }
-                        res.send( response )
-                    }
+                case "spawn_prefab":
+                    command = "spawn "+ getATTSession(req).getUsername() +" "+ req.body.hash
+                    console.log( command )
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-            break;
+                return;
 
-            case "destroy_prefab":
-                command = "select destroy"
-                console.log( command )
-                if ( !!getConnection(req) ) 
-                {
-                    getConnection(req).onMessage = ( message ) => {
-                        console.log( message )
-                        if ( message.data.ResultString == 'Success' )
-                        {
-                            response = { "result" : 'Success' }
-                        } else {
-                            response = { "result" : 'Fail' }
-                        }
-                        res.send( response )
-                    }
+                case "destroy_prefab":
+                    command = "select destroy"
                     await getConnection(req).send( command )
-                } else {
-                    response = { "result": 'Fail' }
-                    res.send( response )
-                }
-        break;
+                return;
+            }
+        } catch ( e ) {
+            console.log( e.message )
+            return
         }
     } else {
         console.log("not authenticated")
