@@ -1,5 +1,5 @@
 $(document).ready(() => {
-
+    var selectedPrefabId = null;
     $("#turnleft").click( ( e ) => controlClick( 'yaw', 'ccw', e.currentTarget ))
     $("#up").click( ( e ) => controlClick( 'move', 'up', e.currentTarget ))
     $("#turnright").click( ( e ) => controlClick( 'yaw', 'cw', e.currentTarget ))
@@ -58,11 +58,12 @@ $(document).ready(() => {
         $(e.target).toggleClass("active")
     })
 
-    $("#DestroySelectedPrefab").click( ( e ) => deletePrefab( e.currentTarget, $("#ClosestPrefab b")) )
+    $("#DestroySelectedPrefab").click( ( e ) => deletePrefab( selectedPrefabId, $("#ClosestPrefab b")) )
 
     $("#SelectFind").click( ( e ) => selectFind( e.currentTarget, $("#SelectFindItems") ) )
 
     $("#SelectFindItems").on( 'click', '.SelectablePrefab', (e) => { 
+        selectedPrefabId = e.target.id;
         selectPrefabById( e.currentTarget, e.target.id, e.target.name, $("#ClosestPrefab b") )
     })
 
@@ -98,14 +99,17 @@ $(document).ready(() => {
     })
 })
 
-function deletePrefab( e, selectDisplay ) {
+function deletePrefab( id, selectDisplay ) {
+    dataSet = { 'selectedPrefabId': id }
+    dataSet.action = 'destroy_prefab'
     $.ajax({
         type: 'post',
         url: '/ajax',
-        data: {'action': 'destroy_prefab'},
+        data: dataSet,
         dataType: 'json'
     })
     .done( (data) => {
+        selectedPrefabId = null;
         $(selectDisplay).html("None selected")
         $('#DestroySelectedPrefab').hide()
     })
@@ -121,6 +125,7 @@ function selectPrefabById( elem, id, name, selectDisplay ) {
     .done( (data) => {
         if ( data.result == 'OK')
         {
+            selectedPrefabId = id
             $(selectDisplay).html( id +" - "+ name )
             $('#DestroySelectedPrefab').show()
         } else {
@@ -150,7 +155,12 @@ function findNearestPrefabById( e, id, selectDisplay ) {
                 data: {'action': 'select_get'},
                 dataType: 'json'
             })
-            .done( (data) => {                
+            .done( (data) => {
+                if ( !!data.data.ResultString )
+                {
+                    let prefabIds = data.data.ResultString.split(' ')
+                    selectedPrefabId = parseInt( prefabIds[0], 10 )
+                }
                 $(selectDisplay).html( data.data.ResultString )
                 $('#DestroySelectedPrefab').show()
             })
@@ -182,6 +192,11 @@ function spawnPrefab( e, id, selectDisplay ) {
                 dataType: 'json'
             })
             .done( (data) => {
+                if ( !!data.data.ResultString )
+                {
+                    let prefabIds = data.data.ResultString.split(' ')
+                    selectedPrefabId = parseInt( prefabIds[0], 10 )
+                }
                 $(selectDisplay).html( data.data.ResultString )
                 $('#DestroySelectedPrefab').show()
             })
@@ -260,7 +275,7 @@ var rotations = [ 'yaw', 'roll', 'pitch' ]
 var standalones = [ 'look-at', 'snap-ground']
 
 function controlClick( action, direction, elem ){
-    dataSet = {}
+    dataSet = { 'selectedPrefabId': selectedPrefabId }
     if ( rotations.includes( action ) ) 
     {
         dataSet.action = 'rotate'

@@ -255,6 +255,10 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     let mdirection = req.body.direction;
                     command = "select move "+ mdirection +" "+ req.session.distanceMag
                     console.log( command )
+                    if ( !!req.body.selectedPrefabId ) {
+                        console.log( "selecting prefab: "+ req.body.selectedPrefabId )
+                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                    }
                     await getConnection(req).send( command )
                 return;
 
@@ -263,19 +267,27 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     let rotateAngle = ( req.body.direction == 'ccw') ? 360 + ( -1 * req.session.rotateAngle ): req.session.rotateAngle;
                     command = "select rotate "+ raxis +" "+ rotateAngle
                     console.log( command )
+                    if ( !!req.body.selectedPrefabId ) {
+                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                    }
                     await getConnection(req).send( command )                
                 return;
 
                 case "look-at":
                     command = "select look-at "+ getATTSession(req).getUsername()
                     console.log( command )
-                    response = { "result": "OK" }
+                    if ( !!req.body.selectedPrefabId ) {
+                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                    }
                     await getConnection(req).send( command )
                 return;
 
                 case "snap-ground":
                     command = "select snap-ground"
                     console.log( command )
+                    if ( !!req.body.selectedPrefabId ) {
+                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                    }
                     await getConnection(req).send( command )
                 return;
 
@@ -314,6 +326,10 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
 
                 case "destroy_prefab":
                     command = "select destroy"
+                    if( !!req.body.selectedPrefabId ) 
+                    {
+                        await getConnection(req).send("select "+ req.body.selectedPrefabId)
+                    }
                     await getConnection(req).send( command )
                 return;
             }
