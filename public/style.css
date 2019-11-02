@@ -154,8 +154,6 @@ a {
 .Controls {
     display: inline-block;
     overflow: auto;
-    width: 100%
-    height: 100%;
     align-items: center;
     margin: 5px;
     padding: 25px;
@@ -166,8 +164,6 @@ a {
 .ControlsMini {
     display: inline-block;
     overflow: auto;
-    width: 100%
-    height: 100%;
     align-items: center;
     margin: 5px;
     padding: 5px;
@@ -178,7 +174,7 @@ a {
 .ControlsLabel {
     display: inline-block;
     overflow: auto;
-    width: 100%
+    width: auto;
     height: 100%;
     align-items: center;
     margin: 5px;
@@ -205,6 +201,16 @@ a {
 .list-group-item {
     width: 100%;
 }
+
+
+.ServerListItemName {
+  display: inline-block;
+}
+
+.ServerListItemOnlineCount {
+  display: inline-block;
+}
+
 
 #Controls {
     display: inline-block show;

@@ -25,21 +25,32 @@ block layout-content
             i(class="fas fa-trash-alt", alt="Delete Selected Prefab")
     div#Controls.Message(class="container")
         div.ContentRow(class="row")
-            a#turnleft.Controls(class="col text-center text-truncate") Turn Left
-            a#up.Controls(class="col text-center text-truncate") UP
-            a#turnright.Controls(class="col text-center text-truncate") Turn Right
+            a#turnleft.Controls(class="col text-center text-truncate")
+                i(class='fas fa-2x fa-undo' alt='Turn CCW')
+            a#forward.Controls(class="col text-center")
+                i(class='fas fa-2x fa-caret-up' alt='FORWARD')
+            a#turnright.Controls(class="col text-center text-truncate")
+                i(class='fas fa-2x fa-redo' alt='Turn CW')
         div.ContentRow(class="row")
-            a#left.Controls(class="col text-center text-truncate") LEFT
-            a#look-at.Controls(class="col text-center text-truncate") LOOK-AT
-            a#right.Controls(class="col text-center text-truncate") RIGHT
-        div.ContentRow(class="row")
-            a#pitchup.Controls(class="col text-center text-truncate") Pitch Up
-            a#down.Controls(class="col text-center text-truncate") DOWN
-            a#pitchdown.Controls(class="col text-center text-truncate") Pitch Down
+            a#left.Controls(class="col text-center text-truncate")
+                i(class='fas fa-2x fa-caret-left' alt='LEFT')
+            a#look-at.Controls(class="col text-center text-truncate")
+                i(class='far fa-2x fa-dot-circle' alt='LOOK AT')
+            a#right.Controls(class="col text-center text-truncate") 
+                i(class='fas fa-2x fa-caret-right' alt='RIGHT')
 
         div.ContentRow(class="row")
-            a#forward.ControlsMini(class="col text-center") Move Forward
-            a#back.ControlsMini(class="col text-center") Move Backward
+            a#up.Controls(class="col text-center text-truncate") 
+                i(class="fas fa-2x fa-angle-double-up" alt='UP')
+            a#back.Controls(class="col text-center")
+                i(class='fas fa-2x fa-caret-down' alt='BACK')
+            a#down.Controls(class="col text-center text-truncate")
+                i(class="fas fa-2x fa-angle-double-down" alt='DOWN')
+
+
+        div.ContentRow(class="row")
+            a#pitchup.ControlsMini(class="col text-center text-truncate") Pitch Up
+            a#pitchdown.ControlsMini(class="col text-center text-truncate") Pitch Down
 
         div.ContentRow(class="row")
             a#spinccw.ControlsMini(class="col text-center") Spin CCW
@@ -80,8 +91,19 @@ block layout-content
                     button(class="FindablePrefab list-group-item list-group-item-action text-left" id=item.hash name=item.name) #{item.hash} - #{item.name}
 
         div.ContentRow(class="row")
-            a#SearchFindNearest.ControlsMini(class="col text-center") Find Nearest
-            a#SearchSpawnItem.ControlsMini(class="col text-center") Spawn Item
+            a#SearchFindNearest.ControlsMini(class="col text-center border-right") Find Nearest        
+            div.col-2
+            div.input-group(class="col text-right text-center")
+                span.input-group-btn(class='btn')
+                    a#SpawnCountMinus(class="text-center")
+                        i(class="fas fa-minus")
+                input#SpawnCount.form-control(type="text" value="1" style="padding-left: 5px; padding-right: 5px;")
+                span.input-group-btn(class='btn')
+                    a#SpawnCountPlus(class="text-center")
+                        i(class="fas fa-plus")
+            a#SearchSpawnItem.ControlsMini(class="col-3 text-center") Spawn Item
+
+            
 
     footer(class="footer mt-auto py-3")
         div.ContentRow(class="container" style="padding: 3px")

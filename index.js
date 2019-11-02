@@ -129,6 +129,7 @@ server.get('/servers', asyncMid( async (req, res, next) => {
     if( authenticated( req ) )
     {
         var servers = await getATTServers(req).getOnline()
+        console.log( servers )
         if ( !!servers )
         {
             if ( !!req.query.error )
@@ -149,8 +150,9 @@ server.post('/servers', asyncMid( async(req, res, next) =>{
     if ( authenticated(req) )
     {
         var servers = await getATTServers(req).getOnline()
-        var serverId = req.body.selectServer;
+        var serverId = req.body.selectedServer;
         var selectedServer = servers.find( item => item.id.toString() == serverId )
+        console.log( req.body )
         console.log( selectedServer )
         try {
             var details = await getATTServers(req).joinConsole( serverId )
@@ -320,6 +322,8 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
 
                 case "spawn_prefab":
                     command = "spawn "+ getATTSession(req).getUsername() +" "+ req.body.hash
+                    if ( req.body.count > 1 )
+                        command += " "+ req.body.count
                     console.log( command )
                     await getConnection(req).send( command )
                 return;

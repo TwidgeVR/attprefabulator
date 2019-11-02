@@ -1,6 +1,6 @@
 {
   "name": "prefabulator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Add, remove and modify prefabs in A Township Tale",
   "main": "index.js",
   "scripts": {

@@ -56,6 +56,7 @@ $(document).ready(() => {
     $(".FindablePrefab").click( (e) => {
         $(".FindablePrefab").toggleClass("active", false)
         $(e.target).toggleClass("active")
+        $("#SpawnCount").val(1)
     })
 
     $("#DestroySelectedPrefab").click( ( e ) => deletePrefab( selectedPrefabId, $("#ClosestPrefab b")) )
@@ -93,10 +94,32 @@ $(document).ready(() => {
     $("#SearchSpawnItem").click( ( e ) => {
         let activeItem = $("#SelectNearestItems").find("button.active").attr('id')
         if ( activeItem !== undefined )
-            spawnPrefab( e.currentTarget, activeItem, $("#ClosestPrefab b"))
+            spawnPrefab( e.currentTarget, activeItem, $("#SpawnCount").val(), $("#ClosestPrefab b"))
         else
             flash( e.currentTarget, "255, 20, 20")
     })
+
+    $(".ServerListItem").click( (e) => {
+        let self = $(e.target);
+        if ( $(self).hasClass('ServerListItemName') ) self = $(self).parent()
+        if ( $(self).hasClass('ServerListItemOnlineCount') ) self = $(self).parent()
+        $("#selectedServer").val( $(self).attr('id') )
+        $('.ServerListItem').toggleClass('active', false )
+        $(self).toggleClass('active')
+    })
+
+    $("#SpawnCountMinus").click(( e ) => {
+        let spawnCount = $("#SpawnCount").val() - 1
+        if ( spawnCount < 1) spawnCount = 1
+        $("#SpawnCount").val( spawnCount )
+        flash( e.target , "20 255 20")
+    })
+    $("#SpawnCountPlus").click(( e ) => {
+        let spawnCount = parseInt($("#SpawnCount").val()) + 1
+        $("#SpawnCount").val( spawnCount )
+        flash( e.target, "20 255 20")
+    })
+
 })
 
 function deletePrefab( id, selectDisplay ) {
@@ -173,11 +196,11 @@ function findNearestPrefabById( e, id, selectDisplay ) {
     })
 }
 
-function spawnPrefab( e, id, selectDisplay ) {
+function spawnPrefab( e, id, count, selectDisplay ) {
     $.ajax({
         type:'post',
         url:'/ajax',
-        data: {'action': 'spawn_prefab', 'hash': id },
+        data: {'action': 'spawn_prefab', 'hash': id, 'count': count },
         dataType: 'json'
     })
     .done( (data) => {
@@ -275,7 +298,10 @@ var rotations = [ 'yaw', 'roll', 'pitch' ]
 var standalones = [ 'look-at', 'snap-ground']
 
 function controlClick( action, direction, elem ){
-    dataSet = { 'selectedPrefabId': selectedPrefabId }
+    dataSet = {}
+    if (!!selectedPrefab)
+        dataSet = { 'selectedPrefabId': selectedPrefabId }
+
     if ( rotations.includes( action ) ) 
     {
         dataSet.action = 'rotate'

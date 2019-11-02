@@ -4,15 +4,20 @@ extends layout
 block layout-content
     div.View.UserView
         h1.Banner Server Select
-        div.Message
-            div.Title
-                form(method='POST' action='/servers')
-                    #error
-                        if error
-                            p.text-danger #{error}
-                    div.form-group
-                        label(for="selectServer") Select a Server:
-                        select#selectServer.form-control(name="selectServer")
-                            each server in serverList
-                                option(value=server.id) #{server.name}
-                    button.btn.btn-primary(type="submit") Connect
+        div.Message(class="container")
+            form(method='POST' action='/servers')
+                input#selectedServer.form-control(type="hidden" name="selectedServer" value=null)
+                #error
+                    if error
+                        p.text-danger #{error}
+                div.ContentRow(class='row')
+                    div(class="col-8 text-left") Server
+                    div(class="col-4 text-center") Players
+                div.ContentRow(class="row")
+                    div#SelectServer(class="list-group")
+                        each server in serverList
+                            div(class="ServerListItem list-group-item list-group-item-action text-left" id=server.id name=server.name) 
+                                div(class="ServerListItemName col-9") #{server.name}
+                                div(class="ServerListItemOnlineCount col-3") [ #{server.online_players.length} ]
+                button.btn.btn-primary(type="submit") Connect
+
