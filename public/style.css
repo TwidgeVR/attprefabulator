@@ -213,17 +213,21 @@ a {
 
 
 #Controls {
-    display: inline-block show;
+  display: inline-block show;
 }
 
 #Select {
-    display: none;
+  display: none;
 }
 
 #Search {
-    display: none;
+  display: none;
+}
+
+#ServerConfig {
+  display: none;
 }
 
 #DestroySelectedPrefab {
-    display: none;
+  display: none;
 }

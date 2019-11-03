@@ -21,26 +21,23 @@ $(document).ready(() => {
 
     $("#ControlsNav").click( () => {
         $(".topnav").toggleClass("active", false)
+        $(".Message").hide()
         $("#ControlsNavLi").toggleClass("active")
         $("div#Controls").show()
-        $("div#Select").hide()
-        $("div#Search").hide()
     })
 
     $("#SelectNav").click( () => {
         $(".topnav").toggleClass("active", false)
+        $(".Message").hide()
         $("#SelectNavLi").toggleClass("active")
         $("div#Select").show()
-        $("div#Controls").hide()
-        $("div#Search").hide()
     })
 
     $("#SearchNav").click( () => {
         $(".topnav").toggleClass("active", false)
+        $(".Message").hide()
         $("#SearchNavLi").toggleClass("active")
         $("div#Search").show()
-        $("div#Controls").hide()
-        $("div#Select").hide()
     })
 
     $("#RotateAngle1").click( () => setAngle( 1, $("#RotateAngle1") ))
@@ -120,6 +117,89 @@ $(document).ready(() => {
         flash( e.target, "20 255 20")
     })
 
+    $("#ConfigureServer").click(( e ) =>{
+        console.log( "get_server_config")
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: { 'action':'get_server_config' },
+            dataType: 'json'
+        })
+        .done((data) => {
+            console.log( data )
+            if ( !!data.data.Result )
+            {
+                let conf = data.data.Result
+
+                $("input.SetServerConfig").each( ( i, elem ) => {
+                    console.log( elem )
+                    let name = elem.name
+                    console.log( "set "+ name +" to "+ conf[name] )
+                    $(elem).val( conf[name] )
+                })
+
+                $("a.ToggleServerConfig").each( ( i, elem ) => {
+                    console.log( elem )                    
+                    let name = elem.name
+                    console.log( "set "+ name +" to "+ conf[name] )
+                    if ( conf[name] )
+                        $("#toggle"+ name)
+                            .removeClass("fa-toggle-off")
+                            .addClass("fa-toggle-on")
+                })
+            }
+
+            $(".topnav").toggleClass("active", false)
+            $("#ConfigureServer").toggleClass("active")
+            $(".Message").hide()
+            $("#ServerConfig").show()
+        })
+    })
+
+    $("a.ToggleServerConfig").click( ( e ) => {
+        console.log( e.currentTarget )
+        let name = e.currentTarget.name
+        let toggler = $("#toggle"+ name)
+        console.log( toggler )
+        console.log( "toggle "+ name )
+        let value = false;
+        if ( toggler.hasClass('fa-toggle-off') ){
+            $(toggler).removeClass("fa-toggle-off").addClass("fa-toggle-on")
+            value = true
+        } else {
+            $(toggler).removeClass("fa-toggle-on").addClass("fa-toggle-off")
+        }
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: {'action': 'set_server_config', 'name': name, 'value': value },
+            dataType: 'json'
+        })
+        .done((data) => {
+            console.log( data )
+            if ( data.result == 'OK' )
+                flash( $(e) , "20, 255, 20" )
+            else 
+                flash( $(e), "255, 20, 20" )
+        })
+    })
+
+    $("a.SetServerConfig").click( ( e ) =>{
+        let name = e.currentTarget.name;
+        console.log( name )
+        let value = $("input[name="+ name +"]").val()
+        console.log( value )
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: {'action': 'set_server_config', 'name': name, 'value': value },
+            dataType: 'json'
+        })
+        .done((data) =>{
+            console.log( data )
+        })
+
+    })
 })
 
 function deletePrefab( id, selectDisplay ) {
@@ -299,7 +379,7 @@ var standalones = [ 'look-at', 'snap-ground']
 
 function controlClick( action, direction, elem ){
     dataSet = {}
-    if (!!selectedPrefab)
+    if (!!selectedPrefabId)
         dataSet = { 'selectedPrefabId': selectedPrefabId }
 
     if ( rotations.includes( action ) ) 

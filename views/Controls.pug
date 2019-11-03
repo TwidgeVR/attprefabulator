@@ -1,0 +1,48 @@
+div#Controls.Message(class="container")
+    div.ContentRow(class="row")
+        a#turnleft.Controls(class="col text-center text-truncate")
+            i(class='fas fa-2x fa-undo' alt='Turn CCW')
+        a#forward.Controls(class="col text-center")
+            i(class='fas fa-2x fa-caret-up' alt='FORWARD')
+        a#turnright.Controls(class="col text-center text-truncate")
+            i(class='fas fa-2x fa-redo' alt='Turn CW')
+    div.ContentRow(class="row")
+        a#left.Controls(class="col text-center text-truncate")
+            i(class='fas fa-2x fa-caret-left' alt='LEFT')
+        a#look-at.Controls(class="col text-center text-truncate")
+            i(class='far fa-2x fa-dot-circle' alt='LOOK AT')
+        a#right.Controls(class="col text-center text-truncate") 
+            i(class='fas fa-2x fa-caret-right' alt='RIGHT')
+
+    div.ContentRow(class="row")
+        a#up.Controls(class="col text-center text-truncate") 
+            i(class="fas fa-2x fa-angle-double-up" alt='UP')
+        a#back.Controls(class="col text-center")
+            i(class='fas fa-2x fa-caret-down' alt='BACK')
+        a#down.Controls(class="col text-center text-truncate")
+            i(class="fas fa-2x fa-angle-double-down" alt='DOWN')
+
+
+    div.ContentRow(class="row")
+        a#pitchup.ControlsMini(class="col text-center text-truncate") Pitch Up
+        a#pitchdown.ControlsMini(class="col text-center text-truncate") Pitch Down
+
+    div.ContentRow(class="row")
+        a#spinccw.ControlsMini(class="col text-center") Spin CCW
+        a#snap-ground.ControlsMini(class="col text-center") Snap Ground
+        a#spincw.ControlsMini(class="col text-center") Spin CW
+    hr
+
+    div.ContentRow(class="row")
+        span.ControlsLabel(class="col text-right align-middle") Rotation: 
+        a#RotateAngle1.ControlsMini(class="rotateangle col text-center") 1&deg;
+        a#RotateAngle10.ControlsMini(class="rotateangle col text-center active") 10&deg;
+        a#RotateAngle45.ControlsMini(class="rotateangle col text-center") 45&deg;
+        a#RotateAngle90.ControlsMini(class="rotateangle col text-center") 90&deg;
+
+    div.ContentRow(class="row")
+        span.ControlsLabel(class="col text-right align-middle") Distance: 
+        a#Distance1cm.ControlsMini(class="distancemag col text-center") 0.01m
+        a#Distance10cm.ControlsMini(class="distancemag col text-center active") 0.1m
+        a#Distance1m.ControlsMini(class="distancemag col text-center") 1m
+        a#Distance10m.ControlsMini(class="distancemag col text-center") 10m

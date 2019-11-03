@@ -23,95 +23,26 @@ block layout-content
                     b None selected
         a#DestroySelectedPrefab(class="col text-center")
             i(class="fas fa-trash-alt", alt="Delete Selected Prefab")
-    div#Controls.Message(class="container")
-        div.ContentRow(class="row")
-            a#turnleft.Controls(class="col text-center text-truncate")
-                i(class='fas fa-2x fa-undo' alt='Turn CCW')
-            a#forward.Controls(class="col text-center")
-                i(class='fas fa-2x fa-caret-up' alt='FORWARD')
-            a#turnright.Controls(class="col text-center text-truncate")
-                i(class='fas fa-2x fa-redo' alt='Turn CW')
-        div.ContentRow(class="row")
-            a#left.Controls(class="col text-center text-truncate")
-                i(class='fas fa-2x fa-caret-left' alt='LEFT')
-            a#look-at.Controls(class="col text-center text-truncate")
-                i(class='far fa-2x fa-dot-circle' alt='LOOK AT')
-            a#right.Controls(class="col text-center text-truncate") 
-                i(class='fas fa-2x fa-caret-right' alt='RIGHT')
 
-        div.ContentRow(class="row")
-            a#up.Controls(class="col text-center text-truncate") 
-                i(class="fas fa-2x fa-angle-double-up" alt='UP')
-            a#back.Controls(class="col text-center")
-                i(class='fas fa-2x fa-caret-down' alt='BACK')
-            a#down.Controls(class="col text-center text-truncate")
-                i(class="fas fa-2x fa-angle-double-down" alt='DOWN')
-
-
-        div.ContentRow(class="row")
-            a#pitchup.ControlsMini(class="col text-center text-truncate") Pitch Up
-            a#pitchdown.ControlsMini(class="col text-center text-truncate") Pitch Down
-
-        div.ContentRow(class="row")
-            a#spinccw.ControlsMini(class="col text-center") Spin CCW
-            a#snap-ground.ControlsMini(class="col text-center") Snap Ground
-            a#spincw.ControlsMini(class="col text-center") Spin CW
-        hr
-
-        div.ContentRow(class="row")
-            span.ControlsLabel(class="col text-right align-middle") Rotation: 
-            a#RotateAngle1.ControlsMini(class="rotateangle col text-center") 1&deg;
-            a#RotateAngle10.ControlsMini(class="rotateangle col text-center active") 10&deg;
-            a#RotateAngle45.ControlsMini(class="rotateangle col text-center") 45&deg;
-            a#RotateAngle90.ControlsMini(class="rotateangle col text-center") 90&deg;
-
-        div.ContentRow(class="row")
-            span.ControlsLabel(class="col text-right align-middle") Distance: 
-            a#Distance1cm.ControlsMini(class="distancemag col text-center") 0.01m
-            a#Distance10cm.ControlsMini(class="distancemag col text-center active") 0.1m
-            a#Distance1m.ControlsMini(class="distancemag col text-center") 1m
-            a#Distance10m.ControlsMini(class="distancemag col text-center") 10m
-            
-
-    div#Select.Message(class="container hidden")
-        div.ContentRow(class="row")
-            a#SelectFind.Controls(class="col text-center") Find Nearby Items 
-        div.ContentRow(class="row")
-            div#SelectFindItems(class="list-group")
-        
-
-    div#Search.Message(class="container hidden")
-        div.ContentRow(class="row")
-            div.Controls(class="col")
-                input#SearchNearestItems.form-control(type="text" placeholder="Search Prefabs")
-
-        div.ContentRow(class="row")
-            div#SelectNearestItems(class="list-group")
-                each item in spawnableItems
-                    button(class="FindablePrefab list-group-item list-group-item-action text-left" id=item.hash name=item.name) #{item.hash} - #{item.name}
-
-        div.ContentRow(class="row")
-            a#SearchFindNearest.ControlsMini(class="col text-center border-right") Find Nearest        
-            div.col-2
-            div.input-group(class="col text-right text-center")
-                span.input-group-btn(class='btn')
-                    a#SpawnCountMinus(class="text-center")
-                        i(class="fas fa-minus")
-                input#SpawnCount.form-control(type="text" value="1" style="padding-left: 5px; padding-right: 5px;")
-                span.input-group-btn(class='btn')
-                    a#SpawnCountPlus(class="text-center")
-                        i(class="fas fa-plus")
-            a#SearchSpawnItem.ControlsMini(class="col-3 text-center") Spawn Item
-
-            
+    include Controls.pug
+    include SelectPrefabs.pug        
+    include SearchPrefabs.pug
+    include ServerConfig.pug
 
     footer(class="footer mt-auto py-3")
-        div.ContentRow(class="container" style="padding: 3px")
-            span(class="col align-middle") Connected to:
-            span#ConnectedTo(class="col text-center align-middle")
-                b#ServerName #{serverName}
-        nav(class="navbar navbar-bottom navbar-expand-lg navbar-light bg-light")
-            ul(class="container")
-                li#Logout(class="navbar-brand col text-center")
-                    a(href="/login") Logout
-            
+        div.ContentRow(class="container d-flex w-100" style="padding: 3px")
+            div.ControlsMini(class="col-8")
+                span#ConnectedTo(class="col text-center align-middle")
+                    b#ServerName #{serverName}
+                span(class="col text-center align-middle")
+                    a#ConfigureServer(class="topnav px-2")
+                        i(class="fas fa-cog" alt="Configure Server")
+                span(class="col text-center align-middle")
+                    a#SwitchServer(href="/servers" class="text-center")
+                        i(class="fas fa-sign-out-alt" alt="Switch Server")
+            div.ControlsMini(class="col-3 d-flex w-100")
+                span(class="span text-center align-middle px-2")
+                    b #{serverUsername}
+                span(class="span text-center align-middle")
+                    a#LogoutDoor(href="/login" class="px-2")
+                        i(class="fas fa-door-open")            

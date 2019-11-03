@@ -185,6 +185,7 @@ server.get('/control', ( req, res, next ) => {
         req.session.rotateAngle = 10;
         req.session.distanceMag = 0.1;
 
+        let userName = getATTSession(req).getUsername()
         let sname = "Not connected";
         if ( !!req.query.serverName ) {
             sname = req.query.serverName
@@ -192,7 +193,7 @@ server.get('/control', ( req, res, next ) => {
         
         try {
             spawnables.find({}).sort({name: 1}).exec( (err, docs) => {
-                res.render("control", { serverName: sname, spawnableItems: docs })
+                res.render("control", { serverUsername: userName, serverName: sname, spawnableItems: docs })
             })
             return
         } catch ( e ) {
@@ -335,6 +336,25 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         await getConnection(req).send("select "+ req.body.selectedPrefabId)
                     }
                     await getConnection(req).send( command )
+                return;
+
+                case "get_server_config":
+                    command = "settings list server"
+                    console.log( command )
+                    await getConnection(req).send( command )
+                return;
+
+                case "set_server_config":
+                    let parameter = ( !!req.body.name ) ? req.body.name : ''
+                    let value = ( !!req.body.value ) ? req.body.value : ''
+                    if ( !!parameter && !!value )
+                    {
+                        command = "settings changeSetting server "+ parameter +" "+ value
+                        console.log( command )
+                        await getConnection(req).send( command )
+                    } else {
+                        res.send({'result':'Fail'})
+                    }
                 return;
             }
         } catch ( e ) {
