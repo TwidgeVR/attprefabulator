@@ -6,6 +6,8 @@ This browser based application gives a click-driven abstraction to the A Townshi
 
 
 ### Release Notes
+- v1.0.4 - Added player config, currently only for the tool user's player
+
 - v1.0.2 - Added some server configuration options
 
 - v1.0.1  - Should support multiple people using it on the same server without select collision
