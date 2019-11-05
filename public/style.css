@@ -228,6 +228,17 @@ a {
   display: none;
 }
 
+#PlayerConfig {
+  display: none;
+}
+
+a.SetPlayerConfig {
+  display: none;
+}
+a.SetServerConfig {
+  display: none;
+}
+
 #DestroySelectedPrefab {
   display: none;
 }

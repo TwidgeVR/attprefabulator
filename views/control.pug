@@ -28,10 +28,11 @@ block layout-content
     include SelectPrefabs.pug        
     include SearchPrefabs.pug
     include ServerConfig.pug
+    include PlayerConfig.pug
 
     footer(class="footer mt-auto py-3")
         div.ContentRow(class="container d-flex w-100" style="padding: 3px")
-            div.ControlsMini(class="col-8")
+            div.ControlsMini(class="col-7")
                 span#ConnectedTo(class="col text-center align-middle")
                     b#ServerName #{serverName}
                 span(class="col text-center align-middle")
@@ -40,9 +41,12 @@ block layout-content
                 span(class="col text-center align-middle")
                     a#SwitchServer(href="/servers" class="text-center")
                         i(class="fas fa-sign-out-alt" alt="Switch Server")
-            div.ControlsMini(class="col-3 d-flex w-100")
+            div.ControlsMini(class="col-4 d-flex w-100")
                 span(class="span text-center align-middle px-2")
                     b #{serverUsername}
+                span(class="span text-center align-middle px-2")
+                    a#PlayerConfigOpen(class="topnav")
+                        i(class="fas fa-user-cog" id=serverUsername name=serverUsername)
                 span(class="span text-center align-middle")
                     a#LogoutDoor(href="/login" class="px-2")
                         i(class="fas fa-door-open")            

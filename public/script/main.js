@@ -1,5 +1,6 @@
 $(document).ready(() => {
     var selectedPrefabId = null;
+    var selectedPlayerName = null;
     $("#turnleft").click( ( e ) => controlClick( 'yaw', 'ccw', e.currentTarget ))
     $("#up").click( ( e ) => controlClick( 'move', 'up', e.currentTarget ))
     $("#turnright").click( ( e ) => controlClick( 'yaw', 'cw', e.currentTarget ))
@@ -109,12 +110,12 @@ $(document).ready(() => {
         let spawnCount = $("#SpawnCount").val() - 1
         if ( spawnCount < 1) spawnCount = 1
         $("#SpawnCount").val( spawnCount )
-        flash( e.target , "20 255 20")
+        flash( e.target , "20, 255, 20")
     })
     $("#SpawnCountPlus").click(( e ) => {
         let spawnCount = parseInt($("#SpawnCount").val()) + 1
         $("#SpawnCount").val( spawnCount )
-        flash( e.target, "20 255 20")
+        flash( e.target, "20, 255, 20")
     })
 
     $("#ConfigureServer").click(( e ) =>{
@@ -156,6 +157,139 @@ $(document).ready(() => {
         })
     })
 
+    $("#PlayerConfigOpen").click( ( e ) => {
+        let username = e.target.id
+        console.log( "get player config "+ username )
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: { 'action': 'get_player_config', player : null },
+            dataType: 'json'
+        })
+        .done( (data) => {
+            if ( !!data.data.Result )
+            {
+                let conf = data.data.Result
+                console.log( conf )
+
+                $("input.SetPlayerConfig").each( (i, elem) => {
+                    let name = elem.name
+                    let config = conf.find(obj => { return obj.Name === name })
+                    console.log(elem)
+                    console.log(config)
+                    $(elem).attr('min', config.DefaultMin)
+                    $(elem).attr('max', config.DefaultMax)
+                    $(elem).attr('step', '0.025' )
+
+                    if ( name == 'health' )
+                    {
+                        $(elem).attr('min', '0.1')
+                    }
+                    if ( name == 'maxhealth' )
+                    {
+                        $(elem).attr('step','1')
+                    }
+                })
+            }
+            console.log( data )
+            $(".topnav").toggleClass("active", false)
+            $("#PlayerConfigOpen").toggleClass("active")
+            $(".Message").hide()
+            $("#PlayerConfig").show()  
+        })
+    })
+
+    $("input.SetPlayerConfig").on('input', (e) =>{
+        let name = e.currentTarget.name
+        let value = $(e.currentTarget).val()
+        console.log( "range "+ name +" = "+ value )
+        $("a.SetPlayerConfig[name="+ name +"]").show()
+        $("span[name="+ name +"-value]").html( value )
+    })
+
+    $("input.SetServerConfig").on('change', (e) => {
+        let name = e.currentTarget.name
+        $("a.SetServerConfig[name="+ name +"]").show()
+    })
+
+    $("a.SetPlayerConfig").click( (e) => {
+        let name = e.currentTarget.name;
+        let value = $("input.SetPlayerConfig[name="+name+"]").val()
+        console.log( "set player stat "+ name +" "+ value )
+        $.ajax({
+            type: 'post',
+            url:'/ajax',
+            data: {'action': 'set_player_stat', 'name': name, 'value': value },
+            dataType: 'json'
+        }).done( (data) => {
+            console.log( data )
+            if ( data.result == 'OK')
+            {
+                flash( e.currentTarget, "20, 255, 20" )
+                e.currentTarget.fade()
+            } else {
+                flash( e.currentTarget, "255, 20, 20" )
+            }
+        })
+    })
+
+    $("a.TogglePlayerConfig").click( ( e ) => {
+        let name = e.currentTarget.name
+        let toggler = $("#toggle"+name)
+        let value = false
+        let dataSet = { 'action': 'set_player_stat', 'name': name }
+        if ( toggler.hasClass('fa-toggle-off') ) {
+            $(toggler).removeClass('fa-toggle-off').addClass("fa-toggle-on")
+            value = true
+        } else {
+            $(toggler).removeClass("fa-toggle-on").addClass("fa-toggle-off")
+        }
+        dataSet.value = value
+        if ( name == 'godmode' ) {
+            dataSet.action = 'set_player_godmode'
+        }
+        $.ajax({
+            type: 'post', url: '/ajax', data: dataSet, dataType: 'json'
+        })
+        .done( (data) => {
+            console.log( data )
+            if ( data.result == 'OK' )
+            {
+                flash( e.currentTarget, "20, 255, 20" )
+            } else {
+                if ( toggler.hasClass("fa-toggle-on") ){
+                    $(toggler).removeClass("fa-toggle-on").addClass("fa-toggle-off")
+                }
+                flash( e.currentTarget, "255, 20, 20" )
+            }
+        })
+    })
+
+
+    $("a.SetServerConfig").click( ( e ) =>{
+        let name = e.currentTarget.name;
+        console.log( name )
+        let value = $("input.SetServerConfig[name="+ name +"]").val()
+        console.log( value )
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: {'action': 'set_server_config', 'name': name, 'value': value },
+            dataType: 'json'
+        })
+        .done((data) =>{
+            console.log( data )
+            if ( data.result == 'OK' )
+            {
+                flash( e.currentTarget, "20, 255, 20")
+                $(e.currentTarget).fadeOut()
+            } else {
+                flash( e.currentTarget, "255, 20, 20")
+            }
+        })
+
+    })
+
     $("a.ToggleServerConfig").click( ( e ) => {
         console.log( e.currentTarget )
         let name = e.currentTarget.name
@@ -178,28 +312,16 @@ $(document).ready(() => {
         .done((data) => {
             console.log( data )
             if ( data.result == 'OK' )
-                flash( $(e) , "20, 255, 20" )
-            else 
-                flash( $(e), "255, 20, 20" )
+                flash( e.currentTarget , "20, 255, 20" )
+            else {
+                if ( toggler.hasClass("fa-toggle-on") ) {
+                    $(toggler).removeClass("fa-toggle-on").addClass("fa-toggle-off")
+                }
+                flash( e.currentTarget, "255, 20, 20" )
+            }
         })
     })
 
-    $("a.SetServerConfig").click( ( e ) =>{
-        let name = e.currentTarget.name;
-        console.log( name )
-        let value = $("input[name="+ name +"]").val()
-        console.log( value )
-        $.ajax({
-            type: 'post',
-            url: '/ajax',
-            data: {'action': 'set_server_config', 'name': name, 'value': value },
-            dataType: 'json'
-        })
-        .done((data) =>{
-            console.log( data )
-        })
-
-    })
 })
 
 function deletePrefab( id, selectDisplay ) {

@@ -356,6 +356,53 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         res.send({'result':'Fail'})
                     }
                 return;
+
+                case "get_player_config":
+                    command = "player list-stat"
+                    console.log( command )
+                    await getConnection(req).send( command )
+                return;
+
+                case "get_player_stat":
+                    // not yet supported
+                    let stat = ( !!req.body.name )
+                        ? req.body.name
+                        : 'health'
+                    let player = ( !!req.body.player )
+                        ? req.body.player
+                        : getATTSession(req).getUsername()
+                    command = "player checkstat "+ player +" "+ stat
+                    console.log( command )
+                    await getConnection(req).send( command )
+                return;
+
+                case "set_player_stat":
+                    if ( !!req.body.name && !!req.body.value )
+                    {
+                        command = "player setstat "+ getATTSession(req).getUsername() +" "+ req.body.name +" "+ req.body.value
+                        console.log( command )
+                        await getConnection(req).send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }
+                return;
+
+                case "set_player_godmode":
+                    let gmplayer = ( !!req.body.player )
+                        ? req.body.player
+                        : getATTSession(req).getUsername()
+                    if ( req.body.value == "true" )
+                    {
+                        command = "player godmodeon "+ gmplayer
+                    } else {
+                        command = "player godmodeoff "+ gmplayer
+                    }
+                    console.log( command )
+                    await getConnection(req).send( command )
+                return
+
+
+
             }
         } catch ( e ) {
             console.log( e.message )
