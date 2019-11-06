@@ -4,8 +4,13 @@ Add, remove and modify prefabs in A Township Tale
 
 This browser based application gives a click-driven abstraction to the A Township Tale console's command set
 
+### Download
+You can download the latest (Windows) executable version of Prefabulator here:
+https://github.com/edencomputing/attprefabulator/releases/
 
 ### Release Notes
+- v1.1.0 - Made prefabulator an electron app!
+
 - v1.0.4 - Added player config, currently only for the tool user's player
 
 - v1.0.2 - Added some server configuration options
