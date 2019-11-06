@@ -9,7 +9,6 @@ const path = require('path')
 const express = require('express')
 const cookieParser = require('cookie-parser')
 const session = require('express-session')
-const sessionStore = require('session-file-store')(session)
 const bodyParser = require('body-parser')
 
 const server = express()
@@ -91,7 +90,11 @@ server.use( express.static(path.join(__dirname, "public")))
 server.use( cookieParser() )
 server.use( bodyParser.urlencoded({ extended: false }) )
 server.use( bodyParser.json() )
-server.use( session({secret: 'RTHV6fzTyb31rHUIETuX', resave: false, saveUninitialized: true, store: new sessionStore() }))
+server.use( session({
+        secret: 'RTHV6fzTyb31rHUIETuX', 
+        resave: false, 
+        saveUninitialized: true
+    }))
 
 
 server.get('/', ( req, res ) => {
