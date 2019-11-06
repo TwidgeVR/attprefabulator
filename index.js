@@ -4,15 +4,16 @@ const sha512 = require('crypto-js/sha512')
 const dotenv = require('dotenv')
 dotenv.config()
 
-var Datastore = require('nedb')
-var spawnables = new Datastore({ filename: 'data/spawnables.db', autoload: true })
-
 // Load required classes for express
 const path = require('path')
 const express = require('express')
 const cookieParser = require('cookie-parser')
 const session = require('express-session')
 const bodyParser = require('body-parser')
+
+var Datastore = require('nedb')
+var spawnables = new Datastore({ filename: path.join(__dirname, 'data/spawnables.db'), autoload: true })
+
 
 const server = express()
 const port = process.env.PORT || 8000
