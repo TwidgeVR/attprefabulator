@@ -5,8 +5,8 @@ let mainWindow;
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
-        height: 820,
-        width: 520
+        height: 880,
+        width: 540
     });
     mainWindow.loadURL("http://localhost:8000");
     mainWindow.on("closed", () => {

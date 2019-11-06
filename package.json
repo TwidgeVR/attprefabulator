@@ -1,12 +1,12 @@
 {
   "name": "prefabulator",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Add, remove and modify prefabs in A Township Tale",
   "main": "electron-start.js",
   "scripts": {
     "start": "electron electron-start.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --ignore sessions/ index.js",
+    "dev": "nodemon --ignore data/ --ignore sessions/ index.js",
     "electron": "electron electron-start.js"
   },
   "repository": {
@@ -28,6 +28,7 @@
     "att-bot-core": "git+https://github.com/alta-vr/ATT-Bot-JS.git",
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.4",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-session": "^1.17.0",
     "moment": "^2.24.0",
@@ -37,6 +38,7 @@
     "save": "^2.4.0"
   },
   "devDependencies": {
-    "electron": "^7.1.0"
+    "electron": "^7.1.0",
+    "electron-packager": "^14.1.0"
   }
 }

@@ -13,10 +13,17 @@ block layout-content
                         p.text-danger #{error}
                 div.form-group
                     label(for='username') Username:
-                    input#username.form-control(type="text", placeholder="ATT Username", name="username")
+                    input#username.form-control(type="text", placeholder="ATT Username", name="username" value=savedLogin.username)
                 div.form-group
                     label(for='password') Password:
-                    input#password.form-control(type="password", name="password")
+                    input#password.form-control(type="password", name="password", value=savedLogin.password)
+                if savedLogin.show == 'true'                    
+                    div.form-group(class="px-3")
+                        if savedLogin.checked
+                            input#savePassword.form-check-input.active(type="checkbox" name="savePassword" checked)
+                        else                            
+                            input#savePassword.form-check-input(type="checkbox" name="savePassword")
+                        label(for='savePassword') Save Login
                 button.btn.btn-primary(type="submit") Login
 
 

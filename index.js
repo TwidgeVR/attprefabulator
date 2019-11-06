@@ -1,5 +1,8 @@
+const fs = require('fs')
 const moment = require('moment')
 const sha512 = require('crypto-js/sha512')
+const dotenv = require('dotenv')
+dotenv.config()
 
 var Datastore = require('nedb')
 var spawnables = new Datastore({ filename: 'data/spawnables.db', autoload: true })
@@ -12,7 +15,10 @@ const session = require('express-session')
 const bodyParser = require('body-parser')
 
 const server = express()
-const port = 8000
+const port = process.env.PORT || 8000
+const useSavedPassword = ( process.env.USE_SAVED_PASS === undefined )
+    ? true
+    : ( process.env.USE_SAVED_PASS == 1 )
 
 // Connection is by sessionID
 var att_connection = []
@@ -108,16 +114,60 @@ server.get('/', ( req, res ) => {
 })
 
 server.get('/login', ( req, res ) => {
+    console.log( "login")
+    let savedLogin = { show:'false', 'checked': '', 'username': null, 'password': null }
+    if ( useSavedPassword )
+    {
+        savedLogin.show = 'true'
+        let credData = loadCredData()
+        if ( !!credData.username && !!credData.password )
+        {
+            savedLogin.checked = 'checked'
+            savedLogin.username = credData.username
+            savedLogin.password = 'xxxxxxxxxxxx'
+        }
+    }
     if ( !!req.query.error )
     {
-        res.render('login', { error: req.query.error })
+        res.render('login', { error: req.query.error, 'savedLogin': savedLogin })
     } else {
-        res.render('login', { error: false })
+        res.render('login', { error: false, 'savedLogin': savedLogin })
     }
 })
 
 server.post('/login', asyncMid( async(req, res, next) => {
-    let resp = await attLogin( req.body.username, req.body.password, req );
+    let lUsername = req.body.username
+    let lPassword = req.body.password
+    let hashPassword = sha512(lPassword).toString()
+    let savePass = req.body.savePassword
+
+    if ( useSavedPassword )
+    {
+        if ( savePass )
+        {
+            console.log( "processing creds")
+            let credData = {}
+            try {
+                credData = loadCredData()
+            } catch ( e ) {
+                console.log( "error loading credentials.json: "+ e.message )
+            }
+            credData.username = lUsername
+            if ( lPassword == 'xxxxxxxxxxxx' )
+            {
+                hashPassword = credData.password
+            } else {
+                credData.password = hashPassword
+            }
+            saveCredData( credData )
+        } else {
+            saveCredData({})
+        }
+
+    }    
+    lPassword = hashPassword
+
+    let resp = await attLogin( lUsername, lPassword, req );
     if ( resp.authenticated == true )
     {
         req.session.userAuthenticated = true
@@ -428,10 +478,9 @@ server.listen( port, (err) => {
 
 
 // ATT Connection
-async function attLogin( username, password, req ) 
+async function attLogin( username, hashPassword, req ) 
 {
     console.log( "Connecting to ATT" )
-    let hashPassword = sha512( password ).toString()
     let resp = {}
     setATTSession( req )
     await getATTSession(req).loginWithUsername( username, hashPassword )
@@ -448,4 +497,31 @@ async function attLogin( username, password, req )
             resp.error = errMsg.message
         });
     return resp
+}
+
+function loadCredData()
+{
+    console.log( "loadCredData" )
+    let parsed = {}
+    try {
+        let raw = fs.readFileSync( path.join(__dirname, 'data/credentials.json') )
+        parsed = JSON.parse( raw )
+    } catch ( e ) {
+        console.log( "error reading data/credentials.json: "+ e.message )        
+    }
+    return parsed
+}
+
+function saveCredData( creds )
+{
+    console.log( "saveCredData" )
+    console.log( creds )
+    fs.writeFile(path.join(__dirname, 'data/credentials.json'), JSON.stringify( creds, null, 4 ), function( err ) {
+        if ( err )
+        {
+            console.log( err );
+        } else {
+            console.log( "New credentials.json saved" );
+        }
+    });   
 }
