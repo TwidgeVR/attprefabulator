@@ -244,13 +244,18 @@ $(document).ready(() => {
         } else {
             $(toggler).removeClass("fa-toggle-on").addClass("fa-toggle-off")
         }
-        dataSet.value = value
         if ( name == 'godmode' ) {
             dataSet.action = 'set_player_godmode'
         }
+        if ( toggler.hasClass('numeric') )
+        {
+            value = ( value ) ? 1 : 0;
+        }
+        dataSet.value = value
+        
         $.ajax({
             type: 'post', url: '/ajax', data: dataSet, dataType: 'json'
-        })
+        })      
         .done( (data) => {
             console.log( data )
             if ( data.result == 'OK' )
