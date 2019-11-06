@@ -1,0 +1,88 @@
+div#PlayerConfig.Message(class="container hidden")
+    div.ContentRow(class="row")
+        i(class="fas fa-user-cog fa-2x px-3") 
+        h4(class="pr-1") #{serverUsername}
+        p on #{serverName}
+    
+    div.PlayerSetting.ContentRow.ControlsMini(class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b God-mode
+        span(class="col text-right align-middle")
+            a.TogglePlayerConfig(name='godmode')
+                i#togglegodmode.Toggle(class="fas fa-toggle-off")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Health
+        span(class="col-2 text-center align-middle px-0")
+            input.SetPlayerConfig.form-control-range(name="health" type="range" min="0" max="15" style="padding-left: 5px; padding-right: 5px;")
+        span(class="col text-center align-middle px-1")
+            span(name="health-value") 0
+        span(class="col text-right align-middle")
+            a.SetPlayerConfig(name='health')
+                i(class="fas fa-save")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Health
+        span(class="col-2 text-center align-middle px-0")
+            input.SetPlayerConfig.form-control-range(name="maxhealth" type="range" min="0" max="15" style="padding-left: 5px; padding-right: 5px;")
+        span(class="col text-center align-middle px-1")
+            span(name="maxhealth-value") 0
+        span(class="col text-right align-middle")
+            a.SetPlayerConfig(name='maxhealth')
+                i(class="fas fa-save")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Health
+        span(class="col-2 text-center align-middle px-0")
+            input.SetPlayerConfig.form-control-range(name="hunger" type="range" min="0" max="15" style="padding-left: 5px; padding-right: 5px;")
+        span(class="col text-center align-middle px-1")
+            span(name="hunger-value") 0
+        span(class="col text-right align-middle")
+            a.SetPlayerConfig(name='hunger')
+                i(class="fas fa-save")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Health
+        span(class="col-2 text-center align-middle px-0")
+            input.SetPlayerConfig.form-control-range(name="poison" type="range" min="0" max="15" style="padding-left: 5px; padding-right: 5px;")
+        span(class="col text-center align-middle px-1")
+            span(name="poison-value") 0
+        span(class="col text-right align-middle")
+            a.SetPlayerConfig(name='poison')
+                i(class="fas fa-save")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Movement Speed
+        span(class="col-2 text-center align-middle px-0")
+            input.SetPlayerConfig.form-control-range(name="speed" type="range" min="0" max="15" style="padding-left: 5px; padding-right: 5px;")
+        span(class="col text-center align-middle px-1")
+            span(name="speed-value") 0
+        span(class="col text-right align-middle")
+            a.SetPlayerConfig(name='speed')
+                i(class="fas fa-save")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Damage
+        span(class="col-2 text-center align-middle px-0")
+            input.SetPlayerConfig.form-control-range(name="damage" type="range" min="0" max="15" style="padding-left: 5px; padding-right: 5px;")
+        span(class="col text-center align-middle px-1")
+            span(name="damage-value") 0
+        span(class="col text-right align-middle")
+            a.SetPlayerConfig(name='damage')
+                i(class="fas fa-save")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Resistance
+        span(class="col-2 text-center align-middle px-0")
+            input.SetPlayerConfig.form-control-range(name="damageprotection" type="range" min="0" max="15" style="padding-left: 5px; padding-right: 5px;")
+        span(class="col text-center align-middle px-1")
+            span(name="damageprotection-value") 0
+        span(class="col text-right align-middle")
+            a.SetPlayerConfig(name='damageprotection')
+                i(class="fas fa-save")
+    div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
+        span(class="col-8 text-left align-middle")
+            b Nightmare
+        span(class="col text-right align-middle")
+            a.TogglePlayerConfig(name='nightmare')
+                i#togglenightmare.Toggle(class="fas fa-toggle-off numeric")
