@@ -8,6 +8,8 @@ This browser based application gives a click-driven abstraction to the A Townshi
 You can download the latest (Windows) executable version of Prefabulator here:
 https://github.com/edencomputing/attprefabulator/releases/
 
+<a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
+
 ### Release Notes
 - v1.1.0 - Made prefabulator an electron app!
 
@@ -24,6 +26,13 @@ https://github.com/edencomputing/attprefabulator/releases/
 
 
 ## Usage 
+
+It's recommended to use the latest release version found here:
+https://github.com/edencomputing/attprefabulator/releases/
+
+Simply download the version for your operating system, extract the files, and run attPrefabulator
+
+### Running from source
 
 First, install node.js, recommend version 12 LTS
 
@@ -48,9 +57,19 @@ Install the necessary node dependencies to run the app using the **npm** command
 npm i
 ```
 
-Start up the server with:
+Start up the application with
 ```
 npm start
+```
+
+If you'd like to run this headless as a server, you can alternately run
+```
+npm run server
+```
+
+In this mode, you should set the environment variable USE_SAVED_PASS=0 to prevent setting default credentials, eg:
+```
+USE_SAVED_PASS=0 npm run server
 ```
 
 Finally, browse to the app with your favorite web browser, at:
