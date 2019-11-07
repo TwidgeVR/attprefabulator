@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.1.1 - Changed default port to 21129 to avoid issues with other software.  Fixed player config controls.  Added options to configure other players on the server
+
 - v1.1.0 - Made prefabulator an electron app!
 
 - v1.0.4 - Added player config, currently only for the tool user's player
