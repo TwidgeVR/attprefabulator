@@ -1,4 +1,8 @@
 const { app, BrowserWindow } = require("electron");
+const dotenv = require('dotenv')
+dotenv.config()
+const port = process.env.PORT || 21129
+
 require('./index.js')
 
 let mainWindow;
@@ -8,7 +12,7 @@ const createWindow = () => {
         height: 880,
         width: 540
     });
-    mainWindow.loadURL("http://localhost:8000");
+    mainWindow.loadURL("http://localhost:"+ port);
     mainWindow.on("closed", () => {
         mainWindow = null;
     });

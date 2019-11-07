@@ -211,6 +211,9 @@ a {
   display: inline-block;
 }
 
+.hidden {
+  display: none;
+}
 
 #Controls {
   display: inline-block show;

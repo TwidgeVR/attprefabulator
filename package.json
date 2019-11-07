@@ -1,11 +1,12 @@
 {
   "name": "prefabulator",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Add, remove and modify prefabs in A Township Tale",
   "main": "electron-start.js",
   "scripts": {
     "start": "electron electron-start.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "node index.js",
     "dev": "nodemon --ignore data/ --ignore sessions/ index.js",
     "electron": "electron electron-start.js"
   },

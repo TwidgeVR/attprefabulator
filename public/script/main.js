@@ -118,7 +118,76 @@ $(document).ready(() => {
         flash( e.target, "20, 255, 20")
     })
 
-    $("#ConfigureServer").click(( e ) =>{
+    $("#ConfigurePlayersNav").click(( e ) =>{
+        console.log( "get_player_list")
+        let optSelected = $("#ConfigurePlayersSelect").find("option:selected")
+        let selectedPlayer = optSelected.text()
+        if ( optSelected.val() != "default" )
+        {
+            $("#ConfigurePlayersSelectedPlayer").val( selectedPlayer )
+        }
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: { 'action': 'get_player_list' },
+            dataType: 'json'
+        })
+        .done( (data) =>{
+            console.log( data )
+            if ( !!data.data.Result )
+            {
+                $("#ConfigurePlayersSelect")
+                    .empty()
+                    .append( $("<option>", { value: "default" }).text("Choose a player..."))
+                $.each( data.data.Result, (ind, player) => {
+                    console.log( player )
+                    let selected = ( player.username == selectedPlayer )
+                    $("#ConfigurePlayersSelect").append(
+                        new Option( player.username, player.id, false, selected )
+                    )
+                })
+            }
+            $(".topnav").toggleClass('active', false)
+            $("#ConfigurePlayersNav").toggleClass("active")
+            $("#ConfigurePlayersActiveForm").val("#ConfigurePlayers")
+            $(".Message").hide()
+            $("#ConfigurePlayers").show()
+        })
+    })
+
+    $("#ConfigurePlayersSelect").on('change', ( e ) => {
+        let optSelected = $(e.target).find("option:selected")
+        console.log( optSelected )
+        if ( optSelected.val() == "default" )
+        {
+            $("#ConfigurePlayersPlayer").html( "Select a player")
+            $("#ConfigurePlayersServerName").hide()
+            $("#ConfigurePlayersDialog").hide()
+            return
+        }
+        let playername = optSelected.text()
+        $("#ConfigurePlayersPlayer").html( playername )
+        $("#ConfigurePlayersSelectedPlayer").val( playername )
+        $("#ConfigurePlayersActiveForm").val( "#ConfigurePlayersDialog")
+        $("#ConfigurePlayersServerName").show()
+        loadPlayerConfig( playername, "#ConfigurePlayersDialog")
+        $("#ConfigurePlayersDialog").show()
+    })
+
+    $("#PlayerConfigNav").click( ( e ) => {
+        let username = e.target.id
+        $("#ConfigurePlayersSelectedPlayer").val( username )
+        $("#ConfigurePlayersActiveForm").val( "#PlayerConfig")        
+        console.log( "get player config "+ username )
+        loadPlayerConfig( username, "#PlayerConfig")
+        $(".topnav").toggleClass("active", false)
+        $("#PlayerConfigNav").toggleClass("active")
+        $(".Message").hide()
+        $("#PlayerConfig").show()  
+    })
+
+
+    $("#ConfigureServerNav").click(( e ) =>{
         console.log( "get_server_config")
         $.ajax({
             type: 'post',
@@ -151,82 +220,45 @@ $(document).ready(() => {
             }
 
             $(".topnav").toggleClass("active", false)
-            $("#ConfigureServer").toggleClass("active")
+            $("#ConfigureServerNav").toggleClass("active")
             $(".Message").hide()
             $("#ServerConfig").show()
         })
     })
 
-    $("#PlayerConfigOpen").click( ( e ) => {
-        let username = e.target.id
-        console.log( "get player config "+ username )
-        $.ajax({
-            type: 'post',
-            url: '/ajax',
-            data: { 'action': 'get_player_config', player : null },
-            dataType: 'json'
-        })
-        .done( (data) => {
-            if ( !!data.data.Result )
-            {
-                let conf = data.data.Result
-                console.log( conf )
-
-                $("input.SetPlayerConfig").each( (i, elem) => {
-                    let name = elem.name
-                    let config = conf.find(obj => { return obj.Name === name })
-                    console.log(elem)
-                    console.log(config)
-                    $(elem).attr('min', config.DefaultMin)
-                    $(elem).attr('max', config.DefaultMax)
-                    $(elem).attr('step', '0.025' )
-
-                    if ( name == 'health' )
-                    {
-                        $(elem).attr('min', '0.1')
-                    }
-                    if ( name == 'maxhealth' )
-                    {
-                        $(elem).attr('step','1')
-                    }
-                })
-            }
-            console.log( data )
-            $(".topnav").toggleClass("active", false)
-            $("#PlayerConfigOpen").toggleClass("active")
-            $(".Message").hide()
-            $("#PlayerConfig").show()  
-        })
-    })
 
     $("input.SetPlayerConfig").on('input', (e) =>{
+        let parent = $("#ConfigurePlayersActiveForm").val()
         let name = e.currentTarget.name
         let value = $(e.currentTarget).val()
         console.log( "range "+ name +" = "+ value )
-        $("a.SetPlayerConfig[name="+ name +"]").show()
-        $("span[name="+ name +"-value]").html( value )
+        $(parent +" a.SetPlayerConfig[name="+ name +"]").show()
+        $(parent +" span[name="+ name +"-value]").html( value )
     })
 
     $("input.SetServerConfig").on('change', (e) => {
+        let parent = $("#ConfigurePlayersActiveForm").val()
         let name = e.currentTarget.name
-        $("a.SetServerConfig[name="+ name +"]").show()
+        $(parent +" a.SetServerConfig[name="+ name +"]").show()
     })
 
     $("a.SetPlayerConfig").click( (e) => {
+        let parent = $("#ConfigurePlayersActiveForm").val()
+        let player = $("#ConfigurePlayersSelectedPlayer").val()
         let name = e.currentTarget.name;
-        let value = $("input.SetPlayerConfig[name="+name+"]").val()
-        console.log( "set player stat "+ name +" "+ value )
+        let value = $(parent +" input.SetPlayerConfig[name="+name+"]").val()
+        console.log( "setstat "+ player +" "+ name +" "+ value )
         $.ajax({
             type: 'post',
             url:'/ajax',
-            data: {'action': 'set_player_stat', 'name': name, 'value': value },
+            data: {'action': 'set_player_stat', 'player': player, 'name': name, 'value': value },
             dataType: 'json'
         }).done( (data) => {
             console.log( data )
             if ( data.result == 'OK')
             {
                 flash( e.currentTarget, "20, 255, 20" )
-                e.currentTarget.fade()
+                $(e.currentTarget).fadeOut()
             } else {
                 flash( e.currentTarget, "255, 20, 20" )
             }
@@ -234,10 +266,12 @@ $(document).ready(() => {
     })
 
     $("a.TogglePlayerConfig").click( ( e ) => {
+        let parent = $("#ConfigurePlayersActiveForm").val()
+        let player = $("#ConfigurePlayersSelectedPlayer").val()
         let name = e.currentTarget.name
-        let toggler = $("#toggle"+name)
+        let toggler = $(parent +" #toggle"+name)
         let value = false
-        let dataSet = { 'action': 'set_player_stat', 'name': name }
+        let dataSet = { 'action': 'set_player_stat', 'name': name, 'player': player }
         if ( toggler.hasClass('fa-toggle-off') ) {
             $(toggler).removeClass('fa-toggle-off').addClass("fa-toggle-on")
             value = true
@@ -270,6 +304,31 @@ $(document).ready(() => {
         })
     })
 
+    $("a.ModPlayerConfig").click( ( e ) =>{
+        let parent = $("#ConfigurePlayersActiveForm").val()
+        let name = e.currentTarget.name
+        let operMinus = $(e.currentTarget).hasClass("minus")
+        let operPlus = $(e.currentTarget).hasClass("plus")
+        let target = $(parent +" input.SetPlayerConfig[name="+ name +"]")
+        let value = newVal = parseInt(target.val())
+        let step = parseInt( target.attr('step') ) || 1
+        let min = parseInt( target.attr('min') ) || 0
+        let max = parseInt( target.attr('max') ) || 10
+        if ( operMinus )
+        {
+            newVal = value - step
+            console.log( name + " minus = "+ newVal )
+            if ( newVal < min )
+                newVal = min                     
+        } else if ( operPlus ) {
+            newVal = value + step
+            console.log( name + " plus = "+ newVal )
+            if ( newVal > max )
+                newVal = max
+        }
+        target.val( newVal )
+        $(parent +" a.SetPlayerConfig[name="+ name +"]").show()
+    })
 
     $("a.SetServerConfig").click( ( e ) =>{
         let name = e.currentTarget.name;
@@ -546,4 +605,41 @@ function updateServer( data )
     {
         $("#ServerName").html( data.err )
     }
+}
+
+async function loadPlayerConfig( username, parentElem )
+{
+    $.ajax({
+        type: 'post',
+        url: '/ajax',
+        data: { 'action': 'get_player_config', player : null },
+        dataType: 'json'
+    })
+    .done( (data) => {
+        if ( !!data.data.Result )
+        {
+            let conf = data.data.Result
+            console.log( conf )
+
+            $(parentElem +" input.SetPlayerConfig").each( (i, elem) => {
+                let name = elem.name
+                let config = conf.find(obj => { return obj.Name === name })
+                console.log(elem)
+                console.log(config)
+                $(elem).attr('min', config.DefaultMin)
+                $(elem).attr('max', config.DefaultMax)
+                $(elem).attr('step', '1' )
+
+                if ( name == 'health' )
+                {
+                    $(elem).attr('min', '0.1')
+                }
+                if ( name == 'maxhealth' )
+                {
+                    $(elem).attr('step','1')
+                }
+            })
+        }
+        return (!!data.data.Result)
+    })
 }

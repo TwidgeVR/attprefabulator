@@ -16,7 +16,7 @@ var spawnables = new Datastore({ filename: path.join(__dirname, 'data/spawnables
 
 
 const server = express()
-const port = process.env.PORT || 8000
+const port = process.env.PORT || 21129
 const useSavedPassword = ( process.env.USE_SAVED_PASS === undefined )
     ? true
     : ( process.env.USE_SAVED_PASS == 1 )
@@ -433,7 +433,18 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 case "set_player_stat":
                     if ( !!req.body.name && !!req.body.value )
                     {
-                        command = "player setstat "+ getATTSession(req).getUsername() +" "+ req.body.name +" "+ req.body.value
+                        let player = ( !!req.body.player )
+                            ? req.body.player
+                            : getATTSession(req).getUsername()
+
+                        let statName = req.body.name
+                        let statVal = req.body.value
+                        switch( statName ) {
+                            case "health":
+                                if ( statVal <= 0 ) statVal = 0.1
+                            break
+                        }
+                        command = "player setstat "+ player +" "+ statName +" "+ statVal
                         console.log( command )
                         await getConnection(req).send( command )
                     } else {
@@ -455,7 +466,11 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     await getConnection(req).send( command )
                 return
 
-
+                case "get_player_list":
+                    command = "player list"
+                    console.log( command )
+                    await getConnection(req).send( command )
+                return
 
             }
         } catch ( e ) {
