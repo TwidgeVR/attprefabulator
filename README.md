@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.1.6 - Added selection history dropdown, added search to Select -> Find Nearby tool
+
 - v1.1.5 - Added teleporting, server messages, player spawn/post tool and player administration tool
 
 - v1.1.1 - Changed default port to 21129 to avoid issues with other software.  Fixed player config controls.  Added options to configure other players on the server
