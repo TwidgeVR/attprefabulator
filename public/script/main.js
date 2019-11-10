@@ -70,13 +70,19 @@ $(document).ready(() => {
     })
 
     $("#SearchNearestItems").keyup( (e) => {
-        var value = $(e.target).val().trim().toLowerCase()
+        let value = $(e.target).val().trim().toLowerCase()
+        let prefabItemsGroup = $(".FindablePrefab")
         if ( value == '' )
         {
-            $(".FindablePrefab").show()
+            prefabItemsGroup.show()
         } else {
-            $(".FindablePrefab").each( function() {
-                if ( $(this).text().toLowerCase().indexOf( value ) > -1 )
+            prefabItemsGroup.each( function() {
+                let hasMatch = 
+                ( 
+                  $(this).attr('id').toLowerCase().indexOf( value ) > -1
+                  || $(this).text().toLowerCase().indexOf( value ) > -1
+                )
+                if ( hasMatch )
                     $(this).show()
                 else
                     $(this).hide()  
@@ -218,6 +224,7 @@ $(document).ready(() => {
             }
         })
 
+        $(selectedConfigForm +" #TradeItemsTag").html("Treat Yo' Self!")
         $(selectedConfigForm + " #TeleportToPlayerButton").hide()
         $(selectedConfigForm + " #TeleportToSelectedPlayer").show()
 
@@ -483,6 +490,12 @@ $(document).ready(() => {
         })
     })
 
+    $("div.TradeItemsGroup").on( 'click', "a.list-group-item", ( e ) => {
+        let parent = selectedConfigForm
+        $(parent + " div.TradeItemsGroup a.list-group-item").toggleClass("active", false)
+        $(e.target).toggleClass("active")
+    })
+
     $("#PlayerConfigTeleport a#TeleportToDestination").click(( e ) =>{
         let parent = selectedConfigForm
         let optSelected = $(parent + " select#TeleportDestinations").find('option:selected')
@@ -642,6 +655,84 @@ $(document).ready(() => {
         }
     })
 
+    $("#PlayerConfigTrade").on('click', 'list-group-item', (e) => {
+        let parent = selectedConfigForm
+        $(parent +" TradeItemsGroup").toggleClass("active", false)
+        $(e.currentTarget).toggleClass("active")
+        $(parent +" #TradeItemsCount").html('1')
+    })
+
+    $("#PlayerConfigTradeDialog #TradeItemsSearch").keyup( (e) => {
+        let parent = selectedConfigForm
+        let value = $(e.target).val().trim().toLowerCase()
+        let tradeItemsGroup = $(parent + " div.TradeItemsGroup a.list-group-item")
+        tradeItemsGroup.toggleClass("active", false)
+        if ( value == '' )
+        {
+            tradeItemsGroup.show()
+        } else {
+            tradeItemsGroup.each((i, elem) => {
+                let hasMatch = 
+                ( 
+                  $(elem).attr('id').toLowerCase().indexOf( value ) > -1
+                  || $(elem).text().toLowerCase().indexOf( value ) > -1
+                )
+                if ( hasMatch )
+                    $(elem).show()
+                else
+                    $(elem).hide()  
+            })
+        }
+    })
+
+    $("#PlayerConfigTradeDialog a#TradeItemsPostBtn").click(( e ) => {
+        let parent = selectedConfigForm
+        let player = selectedPlayerId
+        let parentToActive = parent + " div.TradeItemsGroup a.list-group-item.active"
+        let selectedItem = $(parentToActive).first().attr('id')
+        let count = parseInt( $(parent +" #TradeItemsCount").html() )
+        dataSet = {
+            'action': 'post_prefab',
+            'player': player,
+            'hash': selectedItem,
+            'count': count
+        }
+        console.log( dataSet )
+        $.ajax({ type:'post', url:'/ajax', data: dataSet, dataType: 'json'})
+            .done( (data) => {
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20")
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
+    })
+
+    $("#PlayerConfigTradeDialog a#TradeItemsSpawnBtn").click(( e ) => {
+        let parent = selectedConfigForm
+        let player = selectedPlayerId
+        let parentToActive = parent + " div.TradeItemsGroup a.list-group-item.active"
+        let selectedItem = $(parentToActive).first().attr('id')
+        let count = parseInt( $(parent +" #TradeItemsCount").html() )
+        dataSet = {
+            'action': 'spawn_prefab',
+            'player': player,
+            'hash': selectedItem,
+            'count': count
+        }
+        console.log( dataSet )
+        $.ajax({ type:'post', url:'/ajax', data: dataSet, dataType: 'json'})
+            .done( (data) => {
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20")
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
+    })
+
     $("a.minusInt").click( (e) => {
         let target = "#"+ e.currentTarget.name
         let step = parseInt( $(target +"_step").val() ) || 1
@@ -717,6 +808,42 @@ $(document).ready(() => {
             'players': players
         }
         console.log( dataSet )
+        $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
+            .done( (data) => {
+                console.log( data )
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20" )
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
+    })
+
+    $("a#PlayerAdminKill").click(( e ) => {
+        let player = selectedPlayerId
+        dataSet = {
+            'action': 'player_kill',
+            'player': player
+        }
+        $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
+            .done( (data) => {
+                console.log( data )
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20" )
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
+    })
+
+    $("a#PlayerAdminKick").click(( e ) => {
+        let player = selectedPlayerId
+        dataSet = {
+            'action': 'player_kick',
+            'player': player
+        }
         $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
             .done( (data) => {
                 console.log( data )
@@ -806,10 +933,11 @@ function findNearestPrefabById( e, id, selectDisplay ) {
 }
 
 function spawnPrefab( e, id, count, selectDisplay ) {
+    let player = $("input#PlayerConfigUserId").val()
     $.ajax({
         type:'post',
         url:'/ajax',
-        data: {'action': 'spawn_prefab', 'hash': id, 'count': count },
+        data: {'action': 'spawn_prefab', 'player': player, 'hash': id, 'count': count },
         dataType: 'json'
     })
     .done( (data) => {

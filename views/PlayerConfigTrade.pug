@@ -1,1 +1,30 @@
-p trade goes here
+div#PlayerConfigTradeDialog.Controls.w-100.pt-2.pb-2
+    div.ContentRow
+        span.px-2.py-1
+            b#TradeItemsTag Send Item(s) to Player
+        
+    div.d-flex.pt-3
+        i(class="fas fa-search pr-2 pt-2")
+        div.w-100.pb-1.mb-1(style="flex:1")
+            input#TradeItemsSearch.form-control.w-100(type="text" placeholder="Search Prefabs")
+
+    div.ContentRow(class="row")
+        div.TradeItemsGroup.ControlsMini(class="list-group" style="max-height: 260px")
+            each item in spawnableItems
+                a.list-group-item.text-left(id=item.hash name=item.name) #{item.hash} - #{item.name}
+
+    div.ContentRow
+        div.row.d-flex.w-100
+            div.mr-auto.pt-3.d-flex
+                input#TradeItemsCount_step(type="hidden" value="1")
+                input#TradeItemsCount_min(type="hidden" value="1")
+                a.col.minusInt.text-center(name="TradeItemsCount")
+                    i(class="fas fa-minus")
+                div.col.text-center(style="flex:1")
+                    span#TradeItemsCount 1
+                a.col.plusInt.text-center(name="TradeItemsCount" style="flex:1")
+                    i(class="fas fa-plus")
+            div.ml-auto.pt-2.mx-2(style="flex:1")
+                a#TradeItemsPostBtn.ControlsMini.w-100.text-center.align-middle Post
+            div.ml-auto.pt-2.mx-2(style="flex:1")
+                a#TradeItemsSpawnBtn.ControlsMini.w-100.text-center.align-middle Spawn

@@ -376,12 +376,30 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     await getConnection(req).send( command )
                 return;
 
+                case "post_prefab":
+                    if ( !!req.body.player && !!req.body.hash )
+                    {
+                        command = "trade post "+ req.body.player +" "+ req.body.hash
+                        if ( req.body.count > 1 )
+                            command += " "+ req.body.count
+                        console.log( command )
+                        await getConnection(req).send( command )
+                    } else {
+                        res.send({'result':'Fail'})
+                    }
+                return;
+                    
                 case "spawn_prefab":
-                    command = "spawn "+ getATTSession(req).getUsername() +" "+ req.body.hash
-                    if ( req.body.count > 1 )
-                        command += " "+ req.body.count
-                    console.log( command )
-                    await getConnection(req).send( command )
+                    if ( !!req.body.player && !!req.body.hash )
+                    {
+                        command = "spawn "+ req.body.player +" "+ req.body.hash
+                        if ( req.body.count > 1 )
+                            command += " "+ req.body.count
+                        console.log( command )
+                        await getConnection(req).send( command )
+                    } else {
+                        res.send({'result':'Fail'})
+                    }
                 return;
 
                 case "destroy_prefab":
@@ -493,6 +511,32 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     } else {
                         res.send({'result':'Fail'})
                     }
+                return;
+
+                case "player_kill":
+                    if ( !!req.body.player )
+                    {
+                        command = "player kill "+ req.body.player
+                        console.log( command )
+                        await getConnection(req).send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }
+                return;
+
+                case "player_kick":
+                        if ( !!req.body.player )
+                        {
+                            command = "player kick "+ req.body.player
+                            console.log( command )
+                            await getConnection(req).send( command )
+                        } else {
+                            res.send({'result': 'Fail'})
+                        }
+                return;
+                        
+                default:
+                    res.send({'result':'Unknown Endpoint'})
                 return;
 
             }

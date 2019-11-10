@@ -15,7 +15,7 @@ div#ConfigurePlayers.Message(class="container hidden" style="padding-top: 5px;")
                     a#PlayerConfigTeleport.PlayerNav.ControlsMini.col.ml-auto.text-center
                         i(class="fas fa-street-view fa-2x")
                     a#PlayerConfigTrade.PlayerNav.ControlsMini.col.ml-auto.text-center
-                        i(class="fas fa-mail-bulk fa-2x")
+                        i(class="fas fa-gift fa-2x")
                     a#PlayerConfigAdmin.PlayerNav.ControlsMini.col.ml-auto.text-center
                         i(class="fas fa-user-shield fa-2x")
 
@@ -29,6 +29,4 @@ div#ConfigurePlayers.Message(class="container hidden" style="padding-top: 5px;")
             include PlayerConfigTrade.pug
 
         div#PlayerConfigAdmin.PlayerConfigDialog(class="hidden")
-            p Kill
-            p Kick
-            p Ban                   
+            include PlayerConfigAdmin.pug
