@@ -9,7 +9,7 @@ let mainWindow;
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
-        height: 880,
+        height: 920,
         width: 540
     });
     mainWindow.loadURL("http://localhost:"+ port);
