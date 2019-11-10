@@ -167,6 +167,10 @@ $(document).ready(() => {
                 )
                 listGroup.append("<a class='list-group-item' name='"+ player.id +"'>"+ player.username +"</a>")
             }
+            if ( playerIsSelected )
+            {
+                loadPlayerConfig( selectedPlayerName, "#ConfigurePlayersDialog" )
+            }
             $(".topnav").toggleClass('active', false)
             $("#ConfigurePlayersNav").toggleClass("active")
             $(".Message").hide()
@@ -206,7 +210,6 @@ $(document).ready(() => {
         selectedPlayerId = $("input#PlayerConfigUserId").val()
 
         console.log( "get player config "+ selectedPlayerId +" : "+ selectedPlayerName )
-        loadPlayerConfig( selectedPlayerName, "#PlayerConfig")
 
         loadPlayersOnline( ( playersList ) => {
             console.log( playersList )
@@ -221,6 +224,11 @@ $(document).ready(() => {
             {
                 let player = currentPlayersList[i]
                 listGroup.append("<a class='list-group-item' name='"+ player.id +"'>"+ player.username +"</a>")
+            }
+
+            if ( !!selectedPlayerName )
+            {
+                loadPlayerConfig( selectedPlayerName, "#PlayerConfig")
             }
         })
 
@@ -323,8 +331,9 @@ $(document).ready(() => {
     })
 
     $("input.SetServerConfig").on('change', (e) => {
-        let parent = selectedConfigForm
+        let parent = "#ServerConfig"
         let name = e.currentTarget.name
+        console.log( parent )
         $(parent +" a.SetServerConfig[name="+ name +"]").show()
     })
 
@@ -418,9 +427,10 @@ $(document).ready(() => {
     })
 
     $("a.SetServerConfig").click( ( e ) =>{
+        let parent = "#ServerConfig"
         let name = e.currentTarget.name;
         console.log( name )
-        let value = $("input.SetServerConfig[name="+ name +"]").val()
+        let value = $(parent +" input.SetServerConfig[name="+ name +"]").val()
         console.log( value )
         $.ajax({
             type: 'post',
@@ -1083,7 +1093,6 @@ async function loadPlayerConfig( userId, parentElem )
     $.ajax({
         type: 'post',
         url: '/ajax',
-        async: false,
         data: { 'action': 'get_player_config', player : null },
         dataType: 'json'
     })
@@ -1119,7 +1128,6 @@ function loadPlayersOnline( callBack )
     $.ajax({
         type: 'post',
         url: '/ajax',
-        async: false,
         data: { 'action': 'get_player_list' },
         dataType: 'json'
     })
