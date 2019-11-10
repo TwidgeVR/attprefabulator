@@ -14,15 +14,15 @@ block layout-content
             li#SearchNavLi(class="topnav navbar-brand col text-center")
                 a#SearchNav Search                      
 
-    div(class="container")
-        span#ClosestPrefab(class="col text-truncate") Selected: 
-            label#selectedPrefab 
+    div#SelectedPrefabHistory.ContentRow.container
+        div.ControlsMini.d-flex.w-100
+            span.px-2
+                b Selected:
+            select#SelectedPrefabSelect.form-control.w-100(style="flex:1")
                 if selectedPrefab
-                    b #{selectedPrefab}
-                else
-                    b None selected
-        a#DestroySelectedPrefab(class="col text-center")
-            i(class="fas fa-trash-alt", alt="Delete Selected Prefab")
+                    option() #{selectedPrefab}
+            a#DestroySelectedPrefab.text-center.px-3
+                i(class="fas fa-trash-alt", alt="Delete Selected Prefab")
 
     include Controls.pug
     include SelectPrefabs.pug        

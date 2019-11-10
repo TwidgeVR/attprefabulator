@@ -1,8 +1,9 @@
+var selectedPrefabId = null;
+var selectedPlayerName = null;
+var selectedConfigForm = null;
+var currentPlayersList = null;
+
 $(document).ready(() => {
-    var selectedPrefabId = null;
-    var selectedPlayerName = null;
-    var selectedConfigForm = null;
-    var currentPlayersList = null;
 
     $("#turnleft").click( ( e ) => controlClick( 'yaw', 'ccw', e.currentTarget ))
     $("#up").click( ( e ) => controlClick( 'move', 'up', e.currentTarget ))
@@ -27,6 +28,7 @@ $(document).ready(() => {
         $(".topnav").toggleClass("active", false)
         $(".Message").hide()
         $("#ControlsNavLi").toggleClass("active")
+        $("#SelectedPrefabHistory").show()
         $("div#Controls").show()
     })
 
@@ -34,13 +36,15 @@ $(document).ready(() => {
         $(".topnav").toggleClass("active", false)
         $(".Message").hide()
         $("#SelectNavLi").toggleClass("active")
-        $("div#Select").show()
+        $("#SelectedPrefabHistory").show()
+        $("#SelectFindDialog").show()
     })
 
     $("#SearchNav").click( () => {
         $(".topnav").toggleClass("active", false)
         $(".Message").hide()
         $("#SearchNavLi").toggleClass("active")
+        $("#SelectedPrefabHistory").show()
         $("div#Search").show()
     })
 
@@ -66,7 +70,7 @@ $(document).ready(() => {
 
     $("#SelectFindItems").on( 'click', '.SelectablePrefab', (e) => { 
         selectedPrefabId = e.target.id;
-        selectPrefabById( e.currentTarget, e.target.id, e.target.name, $("#ClosestPrefab b") )
+        selectPrefabById( e.currentTarget, e.target.id, e.target.name )
     })
 
     $("#SearchNearestItems").keyup( (e) => {
@@ -132,6 +136,7 @@ $(document).ready(() => {
         $(".topnav").toggleClass("active", false)
         $(e.currentTarget).toggleClass("active")
         $(".Message").hide()
+        $("#SelectedPrefabHistory").hide()
         $("#CommandTerminal").show()
     })
 
@@ -174,6 +179,7 @@ $(document).ready(() => {
             $(".topnav").toggleClass('active', false)
             $("#ConfigurePlayersNav").toggleClass("active")
             $(".Message").hide()
+            $("#SelectedPrefabHistory").hide()
             $("#ConfigurePlayers").show()
         })
     })
@@ -239,6 +245,7 @@ $(document).ready(() => {
         $(".topnav").toggleClass("active", false)
         $("#PlayerConfigNav").toggleClass("active")
         $(".Message").hide()
+        $("#SelectedPrefabHistory").hide()
         $("#PlayerConfig").show()  
     })
 
@@ -286,6 +293,7 @@ $(document).ready(() => {
             $(".topnav").toggleClass("active", false)
             $("#ConfigureServerNav").toggleClass("active")
             $(".Message").hide()
+            $("#SelectedPrefabHistory").hide()
             $("#ServerConfig").show()
         })
     })
@@ -308,6 +316,7 @@ $(document).ready(() => {
             $(".topnav").toggleClass("active", false)
             $("#ServerMessagesNav").toggleClass("active")
             $(".Message").hide()
+            $("#SelectedPrefabHistory").hide()
             $("#ServerMessages").show()
         })
     })
@@ -866,6 +875,53 @@ $(document).ready(() => {
             })
     })
 
+    $("#SelectedPrefabSelect").on('change', ( e ) => {
+        let optSelected = $(e.target).find("option:selected")
+        let prefabId = optSelected.val()
+        if ( !!prefabId )
+        {
+            dataSet = {
+                'action': 'select_prefab',
+                'prefabId': prefabId
+            }
+            $.ajax({ type:'post', url:'/ajax', data: dataSet, dataType:'json'})
+                .done( (data) => {
+                    if ( data.result == 'OK' )
+                    {
+                        selectedPrefabId = prefabId
+                        console.log( "select prefab from history "+ selectedPrefabId )
+
+                        flash( e.target, "20, 255, 20" )
+                    } else {
+                        flash( e.target, "255, 20, 20" )
+                    }
+                })
+        }
+    })
+
+    $("#SelectFindDialog #SelectFindSearch").keyup( (e) => {
+        let parent = "#SelectFindDialog"
+        let value = $(e.target).val().trim().toLowerCase()
+        let itemsGroup = $(parent + " div#SelectFindItems button.list-group-item")
+        itemsGroup.toggleClass("active", false)
+        if ( value == '' )
+        {
+            itemsGroup.show()
+        } else {
+            itemsGroup.each((i, elem) => {
+                let hasMatch = 
+                ( 
+                  $(elem).attr('id').toLowerCase().indexOf( value ) > -1
+                  || $(elem).text().toLowerCase().indexOf( value ) > -1
+                )
+                if ( hasMatch )
+                    $(elem).show()
+                else
+                    $(elem).hide()  
+            })
+        }
+    })
+
 })
 
 function deletePrefab( id, selectDisplay ) {
@@ -878,13 +934,14 @@ function deletePrefab( id, selectDisplay ) {
         dataType: 'json'
     })
     .done( (data) => {
-        selectedPrefabId = null;
-        $(selectDisplay).html("None selected")
-        $('#DestroySelectedPrefab').hide()
+        $("#SelectedPrefabSelect option:selected").remove()
+        let newSelected = $("#SelectedPrefabSelect option:first").val()
+        $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
     })
 }
 
-function selectPrefabById( elem, id, name, selectDisplay ) {
+function selectPrefabById( elem, id, name ) {
+    console.log( "selecting prefab : "+ id +" "+ name )
     $.ajax({
         type:'post',
         url:'/ajax',
@@ -895,14 +952,17 @@ function selectPrefabById( elem, id, name, selectDisplay ) {
         if ( data.result == 'OK')
         {
             selectedPrefabId = id
-            $(selectDisplay).html( id +" - "+ name )
+            $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
+            $("#SelectedPrefabSelect").append(
+                new Option( id +" - "+ name, id, false, true )
+            )
             $('#DestroySelectedPrefab').show()
         } else {
-            $(selectDisplay).html( "None selected" )
             $('#DestroySelectedPrefab').hide()
         }
 
     })
+
 }
 
 function findNearestPrefabById( e, id, selectDisplay ) {
@@ -930,7 +990,11 @@ function findNearestPrefabById( e, id, selectDisplay ) {
                     let prefabIds = data.data.ResultString.split(' ')
                     selectedPrefabId = parseInt( prefabIds[0], 10 )
                 }
-                $(selectDisplay).html( data.data.ResultString )
+
+                $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()               
+                $("#SelectedPrefabSelect").append(
+                    new Option( id +" - "+ name, id, false, true )
+                )
                 $('#DestroySelectedPrefab').show()
             })
         } else {
@@ -967,7 +1031,11 @@ function spawnPrefab( e, id, count, selectDisplay ) {
                     let prefabIds = data.data.ResultString.split(' ')
                     selectedPrefabId = parseInt( prefabIds[0], 10 )
                 }
-                $(selectDisplay).html( data.data.ResultString )
+
+                $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
+                $("#SelectedPrefabSelect").append(
+                    new Option( data.data.ResultString, selectedPrefabId, false, true )
+                )
                 $('#DestroySelectedPrefab').show()
             })
         } else {
@@ -1046,6 +1114,7 @@ var standalones = [ 'look-at', 'snap-ground']
 
 function controlClick( action, direction, elem ){
     dataSet = {}
+    console.log( "control click "+ selectedPrefabId +" "+ action +" "+ direction +" "+ elem )
     if (!!selectedPrefabId)
         dataSet = { 'selectedPrefabId': selectedPrefabId }
 
