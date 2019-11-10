@@ -1,121 +1,34 @@
 div#ConfigurePlayers.Message(class="container hidden" style="padding-top: 5px;")
-    div.ContentRow.ControlsMini(class="row w-100 py-2 px-2")
-        select#ConfigurePlayersSelect.form-control(class="col" name="ConfigurePlayersSelect")  
+    div.ControlsMini(class="d-flex w-100" style="flex-direction:row")
+        i(class="fas fa-users px-2")
+        select#ConfigurePlayersSelect.form-control.w-100(style="flex:1")
             option(value="default") Choose a player...
-        
-    div.ContentRow(class="row" style="padding-top: 30px;")
-        i(class="fas fa-user-cog fa-2x px-3") 
-        h4#ConfigurePlayersPlayer(class="pr-1") Select a player
-        p#ConfigurePlayersServerName(class="hidden") on #{serverName}
-    
-    div#ConfigurePlayersDialog(class="hidden")
-        div.PlayerSetting.ContentRow.ControlsMini(class="row d-flex w-100")
-            span(class="col-8 text-left align-middle")
-                b God-mode
-            span(class="col text-right align-middle")
-                a.TogglePlayerConfig(name='godmode')
-                    i#togglegodmode.Toggle(class="fas fa-toggle-off")
-        div.PlayerSetting.ContentRow.ControlsMini(name="health" class="row d-flex w-100")
-            span(class="col-7 text-left align-middle")
-                b Health
-            span(class="col text-center align-middle px-0")
-                a.ModPlayerConfig(name="health" class="minus text-center align-middle")
-                    i(class="fas fa-minus")
-            span(class="col-2 text-center align-middle px-1")
-                input.SetPlayerConfig.form-control(name="health" class="px-1" type="text" value="5")
-            span(class="col text-center align-middle px-1")
-                a.ModPlayerConfig(name="health" class="plus text-center align-middle")
-                    i(class="fas fa-plus")
-            span(class="col text-right align-middle")
-                a.SetPlayerConfig(name='health')
-                    i(class="fas fa-save")
-        div.PlayerSetting.ContentRow.ControlsMini(name="maxhealth" class="row d-flex w-100")
-            span(class="col-7 text-left align-middle")
-                b Max Health
-            span(class="col text-center align-middle px-0")
-                a.ModPlayerConfig(name="maxhealth" class="minus text-center align-middle")
-                    i(class="fas fa-minus")
-            span(class="col-2 text-center align-middle px-1")
-                input.SetPlayerConfig.form-control(name="maxhealth" class="px-1" type="text" value="5")
-            span(class="col text-center align-middle px-1")
-                a.ModPlayerConfig(name="maxhealth" class="plus text-center align-middle")
-                    i(class="fas fa-plus")
-            span(class="col text-right align-middle")
-                a.SetPlayerConfig(name='maxhealth')
-                    i(class="fas fa-save")
-        div.PlayerSetting.ContentRow.ControlsMini(name="hunger" class="row d-flex w-100")
-            span(class="col-7 text-left align-middle")
-                b Hunger
-            span(class="col text-center align-middle px-0")
-                a.ModPlayerConfig(name="hunger" class="minus text-center align-middle")
-                    i(class="fas fa-minus")
-            span(class="col-2 text-center align-middle px-1")
-                input.SetPlayerConfig.form-control(name="hunger" class="px-1" type="text" value="2")
-            span(class="col text-center align-middle px-1")
-                a.ModPlayerConfig(name="hunger" class="plus text-center align-middle")
-                    i(class="fas fa-plus")
-            span(class="col text-right align-middle")
-                a.SetPlayerConfig(name='hunger')
-                    i(class="fas fa-save")
-        div.PlayerSetting.ContentRow.ControlsMini(name="poison" class="row d-flex w-100")
-            span(class="col-7 text-left align-middle")
-                b Poison (0)
-            span(class="col text-center align-middle px-0")
-                a.ModPlayerConfig(name="poison" class="minus text-center align-middle")
-                    i(class="fas fa-minus")
-            span(class="col-2 text-center align-middle px-1")
-                input.SetPlayerConfig.form-control(name="poison" class="px-1" type="text" value="0")
-            span(class="col text-center align-middle px-1")
-                a.ModPlayerConfig(name="poison" class="plus text-center align-middle")
-                    i(class="fas fa-plus")
-            span(class="col text-right align-middle")
-                a.SetPlayerConfig(name='poison')
-                    i(class="fas fa-save")
-        div.PlayerSetting.ContentRow.ControlsMini(name="speed" class="row d-flex w-100")
-            span(class="col-7 text-left align-middle")
-                b Movement Speed (1)
-            span(class="col text-center align-middle px-0")
-                a.ModPlayerConfig(name="speed" class="minus text-center align-middle")
-                    i(class="fas fa-minus")
-            span(class="col-2 text-center align-middle px-1")
-                input.SetPlayerConfig.form-control(name="speed" class="px-1" type="text" value="1")
-            span(class="col text-center align-middle px-1")
-                a.ModPlayerConfig(name="speed" class="plus text-center align-middle")
-                    i(class="fas fa-plus")
-            span(class="col text-right align-middle")
-                a.SetPlayerConfig(name='speed')
-                    i(class="fas fa-save")
-        div.PlayerSetting.ContentRow.ControlsMini(name="damage" class="row d-flex w-100")
-            span(class="col-7 text-left align-middle")
-                b Damage (1)
-            span(class="col text-center align-middle px-0")
-                a.ModPlayerConfig(name="damage" class="minus text-center align-middle")
-                    i(class="fas fa-minus")
-            span(class="col-2 text-center align-middle px-1")
-                input.SetPlayerConfig.form-control(name="damage" class="px-1" type="text" value="1")
-            span(class="col text-center align-middle px-1")
-                a.ModPlayerConfig(name="damage" class="plus text-center align-middle")
-                    i(class="fas fa-plus")
-            span(class="col text-right align-middle")
-                a.SetPlayerConfig(name='damage')
-                    i(class="fas fa-save")
-        div.PlayerSetting.ContentRow.ControlsMini(name="damageprotection" class="row d-flex w-100")
-            span(class="col-7 text-left align-middle")
-                b Resistance (1)
-            span(class="col text-center align-middle px-0")
-                a.ModPlayerConfig(name="damageprotection" class="minus text-center align-middle")
-                    i(class="fas fa-minus")
-            span(class="col-2 text-center align-middle px-1")
-                input.SetPlayerConfig.form-control(name="damageprotection" class="px-1" type="text" value="1")
-            span(class="col text-center align-middle px-1")
-                a.ModPlayerConfig(name="damageprotection" class="plus text-center align-middle")
-                    i(class="fas fa-plus")
-            span(class="col text-right align-middle")
-                a.SetPlayerConfig(name='damageprotection')
-                    i(class="fas fa-save")
-        div.PlayerSetting.ContentRow.ControlsMini(name="" class="row d-flex w-100")
-            span(class="col-8 text-left align-middle")
-                b Nightmare
-            span(class="col text-right align-middle")
-                a.TogglePlayerConfig(name='nightmare')
-                    i#togglenightmare.Toggle(class="fas fa-toggle-off numeric")
+
+    div#ConfigurePlayersDialog.pt-2(class="hidden")
+        div.ContentRow(class="row")
+            div.col-auto.mr-auto
+                h4#ConfigurePlayersPlayer.px-1.py-2 Select a player
+            div.PlayerNavControls.col-6.ml-auto
+                div.row
+                    a#PlayerConfigStats.PlayerNav.ControlsMini.col.ml-auto.text-center.active
+                        i(class="fas fa-user-edit fa-2x") 
+                    a#PlayerConfigTeleport.PlayerNav.ControlsMini.col.ml-auto.text-center
+                        i(class="fas fa-street-view fa-2x")
+                    a#PlayerConfigTrade.PlayerNav.ControlsMini.col.ml-auto.text-center
+                        i(class="fas fa-mail-bulk fa-2x")
+                    a#PlayerConfigAdmin.PlayerNav.ControlsMini.col.ml-auto.text-center
+                        i(class="fas fa-user-shield fa-2x")
+
+        div#PlayerConfigStats.PlayerConfigDialog
+            include PlayerConfigStats.pug
+
+        div#PlayerConfigTeleport.PlayerConfigDialog(class="hidden")
+            include PlayerConfigTeleport.pug
+
+        div#PlayerConfigTrade.PlayerConfigDialog(class="hidden")
+            include PlayerConfigTrade.pug
+
+        div#PlayerConfigAdmin.PlayerConfigDialog(class="hidden")
+            p Kill
+            p Kick
+            p Ban                   

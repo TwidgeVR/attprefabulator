@@ -202,6 +202,27 @@ a {
     width: 100%;
 }
 
+#CommandTerminalLog .list-group-item {
+    padding: 3px;
+    margin: 0;
+}
+#CommandTerminalLog .odd {
+  background-color: rgb(240, 240, 240);
+}
+
+#CommandTerminalLog .ok {
+  background-color: #AAFFAA;
+}
+
+#CommandTerminalLog .fail {
+  background-color: #FFAAAA;
+}
+
+#PlayerConfigTeleport .list-group-item {
+  padding: 6px;
+  padding-left: 12px;
+  margin: 0;
+}
 
 .ServerListItemName {
   display: inline-block;
@@ -213,6 +234,12 @@ a {
 
 .hidden {
   display: none;
+}
+
+a.disabled {
+  color: gray;
+  pointer-events: none;
+  cursor: default;
 }
 
 #Controls {
@@ -244,4 +271,8 @@ a.SetServerConfig {
 
 #DestroySelectedPrefab {
   display: none;
+}
+
+#CommandTerminalLog {
+  box-shadow: var(--ui-shawdow);
 }

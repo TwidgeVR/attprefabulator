@@ -1,0 +1,46 @@
+div#ServerMessages.Message(class="container hidden" style="padding-top: 5px;")
+    div#ServerMessageDialog.Controls.w-100.pt-2.pb-2.mt-2
+        div.row.pt-1
+            div.col-auto.mr-auto.px-2.py-1
+                b#ServerMsgTarget Server Message
+            div.col-4.ml-auto.py-1
+                div.row
+                    input#ServerMsgDuration_step(type="hidden" value="1")
+                    input#ServerMsgDuration_min(type="hidden" value="1")
+                    input#ServerMsgDuration_max(type="hidden" value="15")
+                    a.col.minusInt.text-center(name="ServerMsgDuration")
+                        i(class="fas fa-minus")
+                    div.col.text-center
+                        span#ServerMsgDuration 5
+                        span s
+                    a.col.plusInt.text-center(name="ServerMsgDuration")
+                        i(class="fas fa-plus")
+        div.row
+            input#ServerMsgMessage.form-control(placeholder="Hi everybody, love "+ serverUsername +"!")
+        div.row.pb-2
+            a#ServerMsgSendBtn.ControlsMini.col.text-center.align-middle Send Message
+
+    div#PlayersMsgDialog.Controls.w-100.pt-2.pb-2
+        div.row.pt-1
+            span.px-2.py-1
+                b Send Message to Player(s)
+        div.row
+            div#PlayerMsgPlayers.list-group(style="max-height: 180px;")
+                a.list-group-item(name="default") No players found
+        div.row
+            div.col-4.ml-auto.py-1
+                div.row
+                    input#PlayerMsgDuration_step(type="hidden" value="1")
+                    input#PlayerMsgDuration_min(type="hidden" value="1")
+                    input#PlayerMsgDuration_max(type="hidden" value="15")
+                    a.col.minusInt.text-center(name="PlayerMsgDuration")
+                        i(class="fas fa-minus")
+                    div.col.text-center
+                        span#PlayerMsgDuration 5
+                        span s
+                    a.col.plusInt.text-center(name="PlayerMsgDuration")
+                        i(class="fas fa-plus")
+        div.row
+            input#PlayerMsgMessage.form-control(placeholder="Come quick there's a fire!")
+        div.row.pb-2
+            a#PlayerMsgSendBtn.ControlsMini.col.text-center.align-middle Send Message

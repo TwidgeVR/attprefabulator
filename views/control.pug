@@ -28,6 +28,8 @@ block layout-content
     include SelectPrefabs.pug        
     include SearchPrefabs.pug
     include ServerConfig.pug
+    include CommandTerminal.pug
+    include ServerMessages.pug
 
     input#ConfigurePlayersSelectedPlayer(type="hidden")
     input#ConfigurePlayersActiveForm(type="hidden")
@@ -35,20 +37,26 @@ block layout-content
     include ConfigurePlayers.pug
     
     footer(class="footer mt-auto no-gutters py-2 row")
-        div.ControlsMini.col-6.mr-auto.px-4
+        div.ControlsMini.col-auto.mr-auto.px-4
             div.row
                 span#ConnectedTo(class="col text-center align-middle px-4")
                     b#ServerName #{serverName}
             div.row
                 span.col-auto.text-center.align-middle.ml-auto
+                    a#CommandTerminalNav(class="topnav")
+                        i(class="fas fa-laptop-code p-2" alt="Commands")
+                span.col-auto.text-center.align-middle
                     a#ConfigurePlayersNav(class="topnav")
-                        i(class="fas fa-users" alt="Players Online")
+                        i(class="fas fa-users p-2" alt="Players Online")
+                span.col-auto.text-center.align-middle
+                    a#ServerMessagesNav(class="topnav")
+                        i(class="fas fa-comment-dots p-2" alt="Server Messages")
                 span.col-auto.text-center.align-middle
                     a#ConfigureServerNav(class="topnav")
-                        i(class="fas fa-cog" alt="Configure Server")
+                        i(class="fas fa-cog p-2" alt="Configure Server")
                 span.col-auto.text-center.align-middle.mr-auto
                     a#SwitchServer(href="/servers" class="text-center")
-                        i(class="fas fa-sign-out-alt" alt="Switch Server")
+                        i(class="fas fa-sign-out-alt p-2" alt="Switch Server")
         div.ControlsMini.col-auto.ml-auto.px-4
             div.row
                 span.col.px-4.text-right.align-bottom
@@ -56,7 +64,9 @@ block layout-content
             div.row
                 span.col-auto.text-right.align-bottom.px-2.ml-auto
                     a#PlayerConfigNav(class="topnav")
-                        i(class="fas fa-user-cog" id=serverUsername name=serverUsername)
+                        input#PlayerConfigUserId(type="hidden" value=serverUserId)
+                        input#PlayerConfigUsername(type="hidden" value=serverUsername)
+                        i(class="fas fa-user-cog p-2")
                 span.col-auto.text-right.align-bottom.px-2.mr-auto
                     a#LogoutDoor(href="/login")
-                        i(class="fas fa-door-open")            
+                        i(class="fas fa-door-open p-2")            

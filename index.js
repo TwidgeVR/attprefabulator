@@ -239,6 +239,7 @@ server.get('/control', ( req, res, next ) => {
         req.session.rotateAngle = 10;
         req.session.distanceMag = 0.1;
 
+        let userId = getATTSession(req).getUserId()
         let userName = getATTSession(req).getUsername()
         let sname = "Not connected";
         if ( !!req.query.serverName ) {
@@ -247,7 +248,7 @@ server.get('/control', ( req, res, next ) => {
         
         try {
             spawnables.find({}).sort({name: 1}).exec( (err, docs) => {
-                res.render("control", { serverUsername: userName, serverName: sname, spawnableItems: docs })
+                res.render("control", { serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: docs })
             })
             return
         } catch ( e ) {
@@ -471,6 +472,28 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     console.log( command )
                     await getConnection(req).send( command )
                 return
+
+                case "teleport_players":
+                    let players = req.body.players
+                    let destination = req.body.destination
+                    command = "player teleport "+ players +" "+ destination
+                    console.log( command )
+                    await getConnection(req).send( command )
+                return;
+
+                case "send_message":
+                    if ( !!req.body.players )
+                    {
+                        let players = req.body.players
+                        let message = req.body.message
+                        let duration = req.body.duration
+                        command = 'player message '+ players +' "'+ message +'" '+ duration
+                        console.log( command )
+                        await getConnection(req).send( command )
+                    } else {
+                        res.send({'result':'Fail'})
+                    }
+                return;
 
             }
         } catch ( e ) {

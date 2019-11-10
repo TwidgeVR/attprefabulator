@@ -1,6 +1,9 @@
 $(document).ready(() => {
     var selectedPrefabId = null;
     var selectedPlayerName = null;
+    var selectedConfigForm = null;
+    var currentPlayersList = null;
+
     $("#turnleft").click( ( e ) => controlClick( 'yaw', 'ccw', e.currentTarget ))
     $("#up").click( ( e ) => controlClick( 'move', 'up', e.currentTarget ))
     $("#turnright").click( ( e ) => controlClick( 'yaw', 'cw', e.currentTarget ))
@@ -118,38 +121,48 @@ $(document).ready(() => {
         flash( e.target, "20, 255, 20")
     })
 
+    $("#CommandTerminalNav").click(( e ) =>{
+        console.log("command_terminal")
+        $(".topnav").toggleClass("active", false)
+        $(e.currentTarget).toggleClass("active")
+        $(".Message").hide()
+        $("#CommandTerminal").show()
+    })
+
     $("#ConfigurePlayersNav").click(( e ) =>{
         console.log( "get_player_list")
         let optSelected = $("#ConfigurePlayersSelect").find("option:selected")
-        let selectedPlayer = optSelected.text()
-        if ( optSelected.val() != "default" )
-        {
-            $("#ConfigurePlayersSelectedPlayer").val( selectedPlayer )
-        }
-        $.ajax({
-            type: 'post',
-            url: '/ajax',
-            data: { 'action': 'get_player_list' },
-            dataType: 'json'
-        })
-        .done( (data) =>{
-            console.log( data )
-            if ( !!data.data.Result )
+        let playerIsSelected = ( optSelected.val() != "default" )
+        selectedPlayerName = ( playerIsSelected ) ? optSelected.text() : null
+        selectedPlayerId = ( playerIsSelected ) ? optSelected.val() : null
+        loadPlayersOnline( ( playersList ) => {
+            selectedConfigForm = "#ConfigurePlayers"
+            currentPlayersList = playersList
+            let listGroup = $(selectedConfigForm +" div.TeleportPlayers")
+
+            $(selectedConfigForm + " #TeleportToPlayerButton").show()
+            $(selectedConfigForm + " #TeleportToSelectedPlayer").hide()
+            $(selectedConfigForm + " a#TeleportToDestination").html("Teleport "+ selectedPlayerName )
+            $("#ConfigurePlayersSelect")
+            .empty()
+            .append( $("<option>", { value: "default" }).text("Choose a player..."))
+ 
+            listGroup.empty()
+            if ( currentPlayersList.length <= 0 )
             {
-                $("#ConfigurePlayersSelect")
-                    .empty()
-                    .append( $("<option>", { value: "default" }).text("Choose a player..."))
-                $.each( data.data.Result, (ind, player) => {
-                    console.log( player )
-                    let selected = ( player.username == selectedPlayer )
-                    $("#ConfigurePlayersSelect").append(
-                        new Option( player.username, player.id, false, selected )
-                    )
-                })
+                listGroup.append("<a class='list-group-item' name='default'>No players found</a>")
+            }
+            for ( let i = 0; i < currentPlayersList.length; i++ )
+            {
+                let player = currentPlayersList[i]
+                let selected = ( selectedPlayerName == player.username )
+                $("#ConfigurePlayersSelect").append(
+                    new Option( player.username, player.id, false, selected )
+                )
+                listGroup.append("<a class='list-group-item' name='"+ player.id +"'>"+ player.username +"</a>")
             }
             $(".topnav").toggleClass('active', false)
             $("#ConfigurePlayersNav").toggleClass("active")
-            $("#ConfigurePlayersActiveForm").val("#ConfigurePlayers")
             $(".Message").hide()
             $("#ConfigurePlayers").show()
         })
@@ -157,7 +170,6 @@ $(document).ready(() => {
 
     $("#ConfigurePlayersSelect").on('change', ( e ) => {
         let optSelected = $(e.target).find("option:selected")
-        console.log( optSelected )
         if ( optSelected.val() == "default" )
         {
             $("#ConfigurePlayersPlayer").html( "Select a player")
@@ -165,27 +177,64 @@ $(document).ready(() => {
             $("#ConfigurePlayersDialog").hide()
             return
         }
-        let playername = optSelected.text()
-        $("#ConfigurePlayersPlayer").html( playername )
-        $("#ConfigurePlayersSelectedPlayer").val( playername )
-        $("#ConfigurePlayersActiveForm").val( "#ConfigurePlayersDialog")
-        $("#ConfigurePlayersServerName").show()
-        loadPlayerConfig( playername, "#ConfigurePlayersDialog")
+        selectedConfigForm = "#ConfigurePlayersDialog"
+        selectedPlayerName = optSelected.text()
+        selectedPlayerId = optSelected.val()
+
+        let parent = selectedConfigForm
+        $(parent +" #ConfigurePlayersPlayer").html( selectedPlayerName )      
+        loadPlayerConfig( selectedPlayerName, "#ConfigurePlayersDialog")
+
+        let playerListGroup = selectedConfigForm + " div.TeleportPlayers"
+        $(playerListGroup +" a.list-group-item").removeClass("active")
+        $(playerListGroup +" a.list-group-item[name="+ selectedPlayerId +"]").addClass("active")
+        $(selectedConfigForm + " a#TeleportToDestination").html("Teleport "+ selectedPlayerName )
+        $(selectedConfigForm +" span#TeleportPlayersPlayer").html( selectedPlayerName )
+
         $("#ConfigurePlayersDialog").show()
     })
 
     $("#PlayerConfigNav").click( ( e ) => {
-        let username = e.target.id
-        $("#ConfigurePlayersSelectedPlayer").val( username )
-        $("#ConfigurePlayersActiveForm").val( "#PlayerConfig")        
-        console.log( "get player config "+ username )
-        loadPlayerConfig( username, "#PlayerConfig")
+        selectedConfigForm = "#PlayerConfig"
+        selectedPlayerName = $("input#PlayerConfigUsername").val()
+        selectedPlayerId = $("input#PlayerConfigUserId").val()
+
+        console.log( "get player config "+ selectedPlayerId +" : "+ selectedPlayerName )
+        loadPlayerConfig( selectedPlayerName, "#PlayerConfig")
+
+        loadPlayersOnline( ( playersList ) => {
+            console.log( playersList )
+            currentPlayersList = playersList
+            let listGroup = $(selectedConfigForm +" div.TeleportPlayers")
+            listGroup.empty()
+            if ( currentPlayersList.length <= 0 )
+            {
+                listGroup.append("<a class='list-group-item' name='default'>No players found</a>")
+            }
+            for ( let i = 0; i < currentPlayersList.length; i++ )
+            {
+                let player = currentPlayersList[i]
+                listGroup.append("<a class='list-group-item' name='"+ player.id +"'>"+ player.username +"</a>")
+            }
+        })
+
+        $(selectedConfigForm + " #TeleportToPlayerButton").hide()
+        $(selectedConfigForm + " #TeleportToSelectedPlayer").show()
+
         $(".topnav").toggleClass("active", false)
         $("#PlayerConfigNav").toggleClass("active")
         $(".Message").hide()
         $("#PlayerConfig").show()  
     })
 
+    $("a.PlayerNav").click(( e ) => {
+        let name = e.currentTarget.id
+        let parent = selectedConfigForm
+        $(parent +" .PlayerNav").toggleClass("active", false)
+        $(e.currentTarget).toggleClass("active")
+        $(parent +" .PlayerConfigDialog").hide()
+        $(parent +" #"+ name).show()
+    })
 
     $("#ConfigureServerNav").click(( e ) =>{
         console.log( "get_server_config")
@@ -226,9 +275,39 @@ $(document).ready(() => {
         })
     })
 
+    $("#ServerMessagesNav").click(( e ) => {
+        console.log( "server messages" )
+        loadPlayersOnline( ( playersList ) => {
+            currentPlayersList = playersList
+            let listGroup = $("#ServerMessages #PlayerMsgPlayers")
+            listGroup.empty()
+            if ( currentPlayersList.length <= 0 )
+            {
+                listGroup.append("<a class='list-group-item' name='default'>No players found</a>")
+            }
+            for ( let i = 0; i < currentPlayersList.length; i++ )
+            {
+                let player = currentPlayersList[i]
+                listGroup.append("<a class='list-group-item' name='"+ player.id +"'>"+ player.username +"</a>")
+            }
+            $(".topnav").toggleClass("active", false)
+            $("#ServerMessagesNav").toggleClass("active")
+            $(".Message").hide()
+            $("#ServerMessages").show()
+        })
+    })
+
+    $("#ServerMessages #PlayersMsgDialog").on( 'click', "a.list-group-item", ( e ) =>{
+        let parent = "#ServerMessages #PlayerMsgDialog"
+        let targetName = $(e.target).attr('name')
+        if ( targetName != 'default')
+            $(e.target).toggleClass("active")
+    })
+        
+
 
     $("input.SetPlayerConfig").on('input', (e) =>{
-        let parent = $("#ConfigurePlayersActiveForm").val()
+        let parent = selectedConfigForm
         let name = e.currentTarget.name
         let value = $(e.currentTarget).val()
         console.log( "range "+ name +" = "+ value )
@@ -237,21 +316,21 @@ $(document).ready(() => {
     })
 
     $("input.SetServerConfig").on('change', (e) => {
-        let parent = $("#ConfigurePlayersActiveForm").val()
+        let parent = selectedConfigForm
         let name = e.currentTarget.name
         $(parent +" a.SetServerConfig[name="+ name +"]").show()
     })
 
     $("a.SetPlayerConfig").click( (e) => {
-        let parent = $("#ConfigurePlayersActiveForm").val()
-        let player = $("#ConfigurePlayersSelectedPlayer").val()
+        let parent = selectedConfigForm
+        let playerId = selectedPlayerId
         let name = e.currentTarget.name;
         let value = $(parent +" input.SetPlayerConfig[name="+name+"]").val()
-        console.log( "setstat "+ player +" "+ name +" "+ value )
+        console.log( "setstat "+ playerId +" "+ name +" "+ value )
         $.ajax({
             type: 'post',
             url:'/ajax',
-            data: {'action': 'set_player_stat', 'player': player, 'name': name, 'value': value },
+            data: {'action': 'set_player_stat', 'player': playerId, 'name': name, 'value': value },
             dataType: 'json'
         }).done( (data) => {
             console.log( data )
@@ -266,12 +345,13 @@ $(document).ready(() => {
     })
 
     $("a.TogglePlayerConfig").click( ( e ) => {
-        let parent = $("#ConfigurePlayersActiveForm").val()
-        let player = $("#ConfigurePlayersSelectedPlayer").val()
+        let parent = selectedConfigForm
+        let player = selectedPlayerName
+        let playerId = selectedPlayerId
         let name = e.currentTarget.name
         let toggler = $(parent +" #toggle"+name)
         let value = false
-        let dataSet = { 'action': 'set_player_stat', 'name': name, 'player': player }
+        let dataSet = { 'action': 'set_player_stat', 'name': name, 'player': playerId }
         if ( toggler.hasClass('fa-toggle-off') ) {
             $(toggler).removeClass('fa-toggle-off').addClass("fa-toggle-on")
             value = true
@@ -305,7 +385,7 @@ $(document).ready(() => {
     })
 
     $("a.ModPlayerConfig").click( ( e ) =>{
-        let parent = $("#ConfigurePlayersActiveForm").val()
+        let parent = selectedConfigForm
         let name = e.currentTarget.name
         let operMinus = $(e.currentTarget).hasClass("minus")
         let operPlus = $(e.currentTarget).hasClass("plus")
@@ -384,6 +464,269 @@ $(document).ready(() => {
                 flash( e.currentTarget, "255, 20, 20" )
             }
         })
+    })
+
+    $("div.TeleportPlayers").on( 'click', "a.list-group-item", ( e ) =>{
+        let parent = selectedConfigForm
+        let targetName = $(e.target).attr('name')
+        if ( targetName != 'default')
+            $(e.target).toggleClass("active")
+
+        let parentToActive = parent + " div#PlayerConfigTeleport a.list-group-item.active"
+        if ( $(parentToActive).length > 1 )
+            $(parent + " #PlayerConfigTeleport #TeleportToPlayer").addClass("disabled")
+        else
+            $(parent + " #PlayerConfigTeleport #TeleportToPlayer").removeClass("disabled")
+
+        $(parentToActive).each((i, elem) => {
+            console.log( $(elem).attr('name') )
+        })
+    })
+
+    $("#PlayerConfigTeleport a#TeleportToDestination").click(( e ) =>{
+        let parent = selectedConfigForm
+        let optSelected = $(parent + " select#TeleportDestinations").find('option:selected')
+        let players = selectedPlayerId        
+        let destination = optSelected.val()
+
+        dataSet = {
+            'action':'teleport_players',
+            'players': players,
+            'destination': destination
+        }
+        $.ajax({
+            type: 'post',
+            url: 'ajax',
+            data: dataSet,
+            dataType: 'json'
+        })
+        .done( (data) => {
+            if ( data.result == 'OK' )
+                flash( e.currentTarget, "20, 255, 20")
+            else 
+                flash( e.currentTarget, "255, 20, 20")
+        })
+    })
+
+    $("#PlayerConfigTeleport a#TeleportToPlayerButton").click(( e ) => {
+        let players = $("input#PlayerConfigUserId").val()
+        
+        let destination = selectedPlayerId
+        if ( !destination )
+        {
+            flash( e.currentTarget, "255, 20, 20")
+            return
+        }
+        dataSet = {
+            'action':'teleport_players',
+            'players': players,
+            'destination': destination
+        }
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: dataSet,
+            dataType: 'json'
+        })
+        .done( (data) => {
+            if ( data.result == 'OK' )
+            {
+                flash( e.currentTarget, "20, 255, 20")
+            } else {
+                flash( e.currentTarget, "255, 20, 20")
+            }
+        })
+    })
+
+
+    $("#PlayerConfigTeleport a#TeleportToSelectedPlayer").click(( e ) => {
+        let parent = selectedConfigForm
+        let players = $("input#PlayerConfigUserId").val()
+        
+        let parentToActive = parent + " #PlayerConfigTeleport a.list-group-item.active"
+        let destination = $(parentToActive).first().attr('name')
+        if ( !destination )
+        {
+            flash( e.currentTarget, "255, 20, 20")
+            return
+        }
+        dataSet = {
+            'action':'teleport_players',
+            'players': players,
+            'destination': destination
+        }
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: dataSet,
+            dataType: 'json'
+        })
+        .done( (data) => {
+            if ( data.result == 'OK' )
+            {
+                flash( e.currentTarget, "20, 255, 20")
+            } else {
+                flash( e.currentTarget, "255, 20, 20")
+            }
+        })
+    })
+
+    $("#PlayerConfigTeleport a#TeleportSelectedToMe").click(( e ) => {
+        let parent = selectedConfigForm
+        let destination = selectedPlayerId
+
+        let parentToActive = parent + " #PlayerConfigTeleport a.list-group-item.active"
+        let playersList = []
+        $(parentToActive).each((i, elem) => {
+            playersList.push( $(elem).attr('name') )
+        })
+        let players = playersList.join(',')
+        if ( !players )
+        {
+            flash( e.currentTarget, "255, 20, 20" )
+            return
+        }
+        dataSet = {
+            'action': 'teleport_players',
+            'players': players,
+            'destination': destination
+        }
+        $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
+            .done( (data) => {
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20")
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
+
+    })
+
+    $("#PlayerConfigTeleport a#TeleportSelectedToDest").click(( e ) => {
+        let parent = selectedConfigForm
+        let parentToActive = parent + " #PlayerConfigTeleport a.list-group-item.active"
+        let playersList = []
+        $(parentToActive).each((i, elem) => {
+            playersList.push( $(elem).attr('name') )
+        })        
+        if ( !playersList.length )
+        {
+            flash( e.currentTarget, "255, 20, 20")
+            return
+        }
+        let optSelected = $(parent + " select#TeleportDestinations").find('option:selected')
+        let destination = optSelected.val()
+        console.log( destination )
+        if ( !destination )
+        {
+            flash( e.currentTarget, "255, 20, 20")
+            return
+        }
+        for ( let i = 0; i < playersList.length; i++ )
+        {
+            dataSet = {
+                'action':'teleport_players',
+                'players': playersList[i],
+                'destination': destination
+            }
+            $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json'})
+                .done( (data) => {
+                    if ( data.result == 'OK' )
+                    {
+                        flash( e.currentTarget, "20, 255, 20")
+                    } else {
+                        flash( e.currentTarget, "255, 20, 20")
+                    }
+                })
+        }
+    })
+
+    $("a.minusInt").click( (e) => {
+        let target = "#"+ e.currentTarget.name
+        let step = parseInt( $(target +"_step").val() ) || 1
+        let min = parseInt( $(target + "_min").val() ) || 0
+        let val = parseInt( $(target).html() )
+        let newVal = val - step
+        if ( newVal < min )
+            newVal = min
+
+        $(target).html( newVal )
+    })
+
+    $("a.plusInt").click( (e) => {
+        let target = "#"+ e.currentTarget.name
+        let step = parseInt( $(target +"_step").val() ) || 1
+        let max = parseInt( $(target + "_max").val() ) || null
+        let val = parseInt( $(target).html() )
+        let newVal = val + step
+        if ( !!max && newVal > max )
+            newVal = max
+
+        $(target).html( newVal )
+    })
+
+    $("#ServerMessages a#ServerMsgSendBtn").click(( e ) => {
+        let parent = "#ServerMessages"
+        let message = $(parent +" #ServerMsgMessage").val()
+        let duration = parseInt( $(parent + " #ServerMsgDuration").html() )
+        if ( message.trim() == '' )
+        {
+            flash( e.currentTarget, "255, 20, 20")
+            return
+        }
+        dataSet = {
+            'action': 'send_message',
+            'message': message,
+            'duration': duration,
+            'players': "*"
+        }
+        console.log( dataSet )
+        $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
+            .done( (data) => {
+                console.log( data )
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20" )
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
+    })
+
+    $("#ServerMessages a#PlayerMsgSendBtn").click(( e ) => {
+        let parent = "#ServerMessages"
+        let message = $(parent +" #PlayerMsgMessage").val()
+        let duration = parseInt( $(parent + " #PlayerMsgDuration").html() )
+
+        let parentToActive = parent + " #PlayerMsgPlayers a.list-group-item.active"      
+        let playersList = []
+        $(parentToActive).each((i, elem) => {
+            playersList.push( $(elem).attr('name') )
+        })
+        let players = playersList.join(',')
+        if ( !players || message.trim() == '' )
+        {
+            flash( e.currentTarget, "255, 20, 20") 
+            return
+        }
+        dataSet = { 
+            'action': 'send_message',
+            'message': message,
+            'duration': duration,
+            'players': players
+        }
+        console.log( dataSet )
+        $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
+            .done( (data) => {
+                console.log( data )
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20" )
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
     })
 
 })
@@ -607,11 +950,12 @@ function updateServer( data )
     }
 }
 
-async function loadPlayerConfig( username, parentElem )
+async function loadPlayerConfig( userId, parentElem )
 {
     $.ajax({
         type: 'post',
         url: '/ajax',
+        async: false,
         data: { 'action': 'get_player_config', player : null },
         dataType: 'json'
     })
@@ -633,13 +977,32 @@ async function loadPlayerConfig( username, parentElem )
                 if ( name == 'health' )
                 {
                     $(elem).attr('min', '0.1')
-                }
-                if ( name == 'maxhealth' )
-                {
-                    $(elem).attr('step','1')
+                    $(elem).attr('max', conf.find(x=>{return x.Name === 'maxhealth'}).DefaultMax )
                 }
             })
         }
         return (!!data.data.Result)
+    })
+}
+
+function loadPlayersOnline( callBack )
+{
+    console.log( "loadPlayersOnline" )
+    $.ajax({
+        type: 'post',
+        url: '/ajax',
+        async: false,
+        data: { 'action': 'get_player_list' },
+        dataType: 'json'
+    })
+    .done( (data) => {
+        if ( data.result == 'OK' && !!data.data.Result )
+        {
+            console.log( data )
+            return callBack( data.data.Result );
+        } else {
+            console.log( "Error retrieving player list" )
+            return null
+        }
     })
 }

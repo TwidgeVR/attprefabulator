@@ -1,0 +1,35 @@
+div.Controls.w-100.pt-2.pb-2
+    div#TeleportToPlayerButton.pt-2.pb-2
+        div.row
+            a#TeleportToPlayerButton.btn.ControlsMini.w-100.text-center.align-middle Teleport to Player
+
+    div.row
+        span.px-2.py-1
+            b Select Destination
+
+    div.row
+        select#TeleportDestinations.form-control.w-100
+            option(value="RespawnPoint" selected) Respawn Point
+            option(value="OriginalSpawnPoint") New Player Spawn
+            option(value="FinishRecustomization") Customization House
+            option(value="OutsideCave") Mine Entrance
+            option(value="TestingArea") Testing Area
+    div#TeleportToDestinationButton.row
+        a#TeleportToDestination.ControlsMini.col.text-center.align-middle Teleport
+
+    div.row.pt-2
+        span.px-2.py-1
+            b Select Player(s)
+    div.row
+        div.TeleportPlayers.list-group(style="max-height: 130px;")
+            a.list-group-item(name="default") No players found
+    div.row
+        a#TeleportToSelectedPlayer.btn.ControlsMini.w-100.text-center.align-middle Teleport to Player
+
+    div.row
+        a#TeleportSelectedToMe.btn.ControlsMini.w-100.text-center.align-middle 
+            span Teleport Player(s) to 
+            span#TeleportPlayersPlayer Me
+    div.row
+        a#TeleportSelectedToDest.btn.ControlsMini.w-100.text-center.align-middle 
+            span Teleport Player(s) to Destination
