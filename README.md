@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.1.7 - Loads the list of spawnables on server connect so it remains up to date.  Fixed +/- buttons on spawn dialogs.
+
 - v1.1.6 - Added selection history dropdown, added search to Select -> Find Nearby tool
 
 - v1.1.5 - Added teleporting, server messages, player spawn/post tool and player administration tool
