@@ -13,7 +13,7 @@ const bodyParser = require('body-parser')
 
 var Datastore = require('nedb')
 var spawnables = new Datastore({ filename: path.join(__dirname, 'data/spawnables.db'), autoload: true })
-
+var spawnableItemsList = []
 
 const server = express()
 const port = process.env.PORT || 21129
@@ -233,7 +233,7 @@ server.post('/servers', asyncMid( async(req, res, next) =>{
     }
 }))
 
-server.get('/control', ( req, res, next ) => {
+server.get('/control', asyncMid( async ( req, res, next ) => {
     if ( authenticated( req ))
     {
         req.session.rotateAngle = 10;
@@ -247,10 +247,18 @@ server.get('/control', ( req, res, next ) => {
         }
         
         try {
+            /*
             spawnables.find({}).sort({name: 1}).exec( (err, docs) => {
                 res.render("control", { serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: docs })
             })
-            return
+            */
+            loadSpawnableItems(req)
+                .then(() => {
+                    console.log( "rendering control" )
+                    console.log( spawnableItemsList )
+                    res.render("control", { serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList })
+                    return
+                })
         } catch ( e ) {
             console.log( e )
             res.redirect('/login?error=Server error')
@@ -259,7 +267,7 @@ server.get('/control', ( req, res, next ) => {
     } else {
         res.redirect('login?error=Logged out')
     }
-})
+}))
 
 server.post('/ajax', asyncMid( async( req, res, next ) => {
     console.log( req.body )
@@ -580,6 +588,31 @@ async function attLogin( username, hashPassword, req )
             resp.error = errMsg.message
         });
     return resp
+}
+
+async function loadSpawnableItems( req )
+{
+    return new Promise( ( resolve, reject ) => {
+        let conn = getConnection( req )
+        conn.onMessage = (data) => {
+            console.log( "this is loadSpawnableItems onMessage" )
+            console.log( data.data.Result )
+            if ( !!data.data.Result && data.data.Result.length > 0 )
+            {
+                spawnableItemsList = data.data.Result
+                spawnableItemsList.sort((a, b) => {
+                    al = a.Name.toLowerCase()
+                    bl = b.Name.toLowerCase()
+                    return ( al > bl ) ? 1 : -1
+                })
+                return resolve()
+            } else {
+                return reject()
+            }
+        }
+        console.log( "loadSpawnableItems getting spawnables list" )
+        conn.send( "spawn list" )
+    })
 }
 
 function loadCredData()

@@ -10,8 +10,9 @@ div#PlayerConfigTradeDialog.Controls.w-100.pt-2.pb-2
 
     div.ContentRow(class="row")
         div.TradeItemsGroup.ControlsMini(class="list-group" style="max-height: 260px")
-            each item in spawnableItems
-                a.list-group-item.text-left(id=item.hash name=item.name) #{item.hash} - #{item.name}
+            if spawnableItems
+                each item in spawnableItems
+                    a.list-group-item.text-left(id=item.Hash name=item.Name) #{item.Hash} - #{item.Name}
 
     div.ContentRow
         div.row.d-flex.w-100

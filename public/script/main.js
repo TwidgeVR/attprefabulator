@@ -193,7 +193,7 @@ $(document).ready(() => {
             $("#ConfigurePlayersDialog").hide()
             return
         }
-        selectedConfigForm = "#ConfigurePlayersDialog"
+        selectedConfigForm = "#ConfigurePlayers"
         selectedPlayerName = optSelected.text()
         selectedPlayerId = optSelected.val()
 
@@ -300,6 +300,7 @@ $(document).ready(() => {
 
     $("#ServerMessagesNav").click(( e ) => {
         console.log( "server messages" )
+        selectedConfigForm = "#ServerMessages"
         loadPlayersOnline( ( playersList ) => {
             currentPlayersList = playersList
             let listGroup = $("#ServerMessages #PlayerMsgPlayers")
@@ -753,27 +754,29 @@ $(document).ready(() => {
     })
 
     $("a.minusInt").click( (e) => {
+        let parent = selectedConfigForm
         let target = "#"+ e.currentTarget.name
-        let step = parseInt( $(target +"_step").val() ) || 1
-        let min = parseInt( $(target + "_min").val() ) || 0
-        let val = parseInt( $(target).html() )
+        let step = parseInt( $(parent +" "+ target +"_step").val() ) || 1
+        let min = parseInt( $(parent +" "+ target +"_min").val() ) || 0
+        let val = parseInt( $(parent +" "+ target).html() )
         let newVal = val - step
         if ( newVal < min )
             newVal = min
 
-        $(target).html( newVal )
+        $(parent +" "+ target).html( newVal )
     })
 
     $("a.plusInt").click( (e) => {
+        let parent = selectedConfigForm
         let target = "#"+ e.currentTarget.name
-        let step = parseInt( $(target +"_step").val() ) || 1
-        let max = parseInt( $(target + "_max").val() ) || null
-        let val = parseInt( $(target).html() )
+        let step = parseInt( $(parent +" "+ target +"_step").val() ) || 1
+        let max = parseInt( $(parent +" "+ target +"_max").val() ) || null
+        let val = parseInt( $(parent +" "+ target).html() )
         let newVal = val + step
         if ( !!max && newVal > max )
             newVal = max
 
-        $(target).html( newVal )
+        $(parent +" "+ target).html( newVal )
     })
 
     $("#ServerMessages a#ServerMsgSendBtn").click(( e ) => {
@@ -993,7 +996,7 @@ function findNearestPrefabById( e, id, selectDisplay ) {
 
                 $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()               
                 $("#SelectedPrefabSelect").append(
-                    new Option( id +" - "+ name, id, false, true )
+                    new Option( data.data.ResultString, selectedPrefabId, false, true )
                 )
                 $('#DestroySelectedPrefab').show()
             })
@@ -1017,31 +1020,23 @@ function spawnPrefab( e, id, count, selectDisplay ) {
     .done( (data) => {
         if ( data.result == 'OK' )
         {
-            let color = "20, 255, 20"
-            flash( $("#SearchSpawnItem"), color )
-            $.ajax({
-                type:'post',
-                url:'/ajax',
-                data: {'action': 'select_get'},
-                dataType: 'json'
-            })
-            .done( (data) => {
-                if ( !!data.data.ResultString )
-                {
-                    let prefabIds = data.data.ResultString.split(' ')
-                    selectedPrefabId = parseInt( prefabIds[0], 10 )
-                }
-
+            console.log( data )
+            console.log( data.data.Result )
+            flash( e.currentTarget, "20, 255, 20" )
+            if ( !!data.data.Result )
+            {
+                selectedPrefabId = data.data.Result[0].Identifier
                 $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
+                let pname = selectedPrefabId +" - "+ data.data.Result[0].Name
                 $("#SelectedPrefabSelect").append(
-                    new Option( data.data.ResultString, selectedPrefabId, false, true )
+                    new Option( pname, selectedPrefabId, false, true )
                 )
                 $('#DestroySelectedPrefab').show()
-            })
+            }
         } else {
             $( e ).css('pointer-events', 'auto')
             let color = "255, 20, 20"
-            flash( $("#SearchSpawnItem"), color )
+            flash( e.currentTarget, color )
             updateServer( data )
         }
     })
