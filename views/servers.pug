@@ -2,22 +2,30 @@ extends layout
 
 
 block layout-content
-    div.View.UserView
-        h1.Banner Server Select
-        div.Message(class="container")
-            form(method='POST' action='/servers')
-                input#selectedServer.form-control(type="hidden" name="selectedServer" value=null)
+
+    h1.Banner Server Select
+
+    div#ServerSelect.Message.mt-3.pt-2.pb-2(class="container")
+        form(method='POST' action='/servers')
+            input#selectedServer.form-control(type="hidden" name="selectedServer" value=null)
+            div.d-flex.pt-3
+                i(class="fas fa-search pr-2 pt-2")
+                div.w-100.pb-1.mb-1(style="flex:1")
+                    input#ServerSearch.form-control.w-100(type="text" placeholder="Search Servers")
+
+            div.ContentRow(class='row')
+                div(class="col-8 text-left") Server
+                div(class="col-4 text-center") Players
+            div.ContentRow(class="row")
+                div#SelectServerList.list-group
+                    each server in serverList
+                        div(class="ServerListItem list-group-item list-group-item-action text-left" id=server.id name=server.name) 
+                            div(class="ServerListItemName col-9") #{server.name}
+                            div(class="ServerListItemOnlineCount col-3") [ #{server.online_players.length} ]
+
+            button.btn.btn-primary.mt-3(type="submit") Connect
+            div.ContentRow.row.mt-2.mb-0.py-3
                 #error
                     if error
                         p.text-danger #{error}
-                div.ContentRow(class='row')
-                    div(class="col-8 text-left") Server
-                    div(class="col-4 text-center") Players
-                div.ContentRow(class="row")
-                    div#SelectServer(class="list-group")
-                        each server in serverList
-                            div(class="ServerListItem list-group-item list-group-item-action text-left" id=server.id name=server.name) 
-                                div(class="ServerListItemName col-9") #{server.name}
-                                div(class="ServerListItemOnlineCount col-3") [ #{server.online_players.length} ]
-                button.btn.btn-primary(type="submit") Connect
 

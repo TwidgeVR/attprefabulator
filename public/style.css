@@ -110,6 +110,13 @@ a {
   box-shadow: var(--ui-shawdow);
 }
 
+.SubMessage {
+  background: white;
+  padding: 30px;
+  border-bottom: var(--ui-shawdow-border);
+  box-shadow: var(--ui-shawdow);
+}
+
 .Message > .Title {
   padding-bottom: 20px;
 }
@@ -187,6 +194,14 @@ a {
     box-shadow: var(--ui-shawdow);
 }
 
+.shadowbox {
+  box-shadow: var(--ui-shadow);
+}
+
+.noborder {
+  border: none;
+}
+
 .active { 
     color: whitesmoke;
     background: grey;
@@ -196,6 +211,7 @@ a {
     max-height: 400px;
     width: 100%;
     overflow-y: scroll;
+    background-color: rgba(230,230,230,0.90)
 }
 
 .list-group-item {
@@ -230,6 +246,14 @@ a {
 
 .ServerListItemOnlineCount {
   display: inline-block;
+}
+
+.ScannedPrefab {
+  border-bottom: var(--ui-shawdow-border);  
+}
+
+.PrefabListItem {
+  border-bottom: var(--ui-shawdow-border);  
 }
 
 .hidden {

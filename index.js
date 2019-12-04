@@ -1,5 +1,6 @@
 const fs = require('fs')
 const moment = require('moment')
+const clone = require('clone')
 const sha512 = require('crypto-js/sha512')
 const dotenv = require('dotenv')
 dotenv.config()
@@ -10,10 +11,12 @@ const express = require('express')
 const cookieParser = require('cookie-parser')
 const session = require('express-session')
 const bodyParser = require('body-parser')
+const fileUpload = require('express-fileupload')
 
 var Datastore = require('nedb')
 var spawnables = new Datastore({ filename: path.join(__dirname, 'data/spawnables.db'), autoload: true })
 var spawnableItemsList = []
+var loadedPrefabLists = {}
 
 const server = express()
 const port = process.env.PORT || 21129
@@ -95,6 +98,7 @@ server.set('views', path.join(__dirname, 'views'))
 server.set('view engine', 'pug')
 server.use( express.static(path.join(__dirname, "public")))
 server.use( cookieParser() )
+server.use( fileUpload() )
 server.use( bodyParser.urlencoded({ extended: false }) )
 server.use( bodyParser.json() )
 server.use( session({
@@ -269,6 +273,365 @@ server.get('/control', asyncMid( async ( req, res, next ) => {
     }
 }))
 
+server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
+    if ( authenticated( req ) )
+    {
+        console.log( req.body )
+        let response = {}
+        let itemList = req.body.items
+        let useExactCoordinates = ( req.body.exact == true ) ? true : false
+        console.log( itemList )
+        let positionList = []
+        getConnection(req).onMessage = ( message ) => {
+            console.log( "command response message")
+            console.log( message )
+            if ( message.data.Command.FullName != 'select.' ) 
+            {
+                item = message.data.Result
+                let matches = item.Name.match(/-\ ([a-zA-Z0-9_\ ]+)\(Clone\)/)
+                console.log( matches )
+                let name = matches[1]
+                console.log( name )
+                positionList.push({ 
+                    'Position' : item.Position,
+                    'Rotation' : item.Rotation,
+                    'Name': name
+                })
+            }
+        }
+        console.log("getting positions")
+        for ( let i = 0; i < itemList.length; i++ )
+        {
+            // Gather the v3 coordinates for each item
+            let item = itemList[i]
+            let cmd = "select "+ item.id
+            console.log( "getting item "+ item.id +":"+ item.name )
+            await getConnection(req).send(cmd)
+            await getConnection(req).send("select get")
+        }
+        // wait for positionList to fill
+        console.log( "done getting positions, write file" )
+        let retries = 20;
+        function waitForPositions() {
+            if ( positionList.length > 0 
+                && ( positionList.length == itemList.length || retries == 0 ) )
+            {
+                console.log( "final positions: ")
+                console.log( positionList )
+
+                if ( !useExactCoordinates )
+                {
+                    // Find the smallest values for x,y,z 
+                    min_x = positionList[0].Position[0];
+                    min_y = positionList[0].Position[1];
+                    min_z = positionList[0].Position[2];
+                    for ( let i = 0; i < positionList.length; i++ )
+                    {
+                        let item = positionList[i]
+                        min_x = ( item.Position[0] < min_x )? item.Position[0] : min_x
+                        min_y = ( item.Position[1] < min_y )? item.Position[1] : min_y
+                        min_z = ( item.Position[2] < min_z )? item.Position[2] : min_z
+                    }
+
+                    // remove the minimum offsets to bring the item to root
+                    console.log( "min_x: "+ min_x )
+                    console.log( "min_y: "+ min_y )
+                    console.log( "min_z: "+ min_z )
+                    for ( let i = 0; i < positionList.length; i++ )
+                    {
+                        let item = positionList[i]
+                        item.Position[0] = item.Position[0] - min_x
+                        item.Position[1] = item.Position[1] - min_y
+                        item.Position[2] = item.Position[2] - min_z
+                        positionList[i] = item;
+                    }
+                    console.log("offset positions:")
+                    console.log( positionList )
+                }
+
+                // Write it out to the file
+                let ts = moment().valueOf()
+                let fprefix = req.sessionID + "_"
+                let filename = ts + ".json"
+                let jsonDataset = { 
+                    'header' : {
+                        'player': getATTSession(req).getUsername(),
+                        'timestamp': ts,
+                        'exact': useExactCoordinates
+                    },
+                    'prefabs' : positionList
+                }
+                let jsonString =  JSON.stringify( jsonDataset, ( k, v ) => { return v.toFixed ? Number(v.toFixed(6)) : v }, 4 )
+                                    
+                fs.writeFile( path.join(__dirname, 'data/'+ fprefix + filename ), jsonString, function( err ) {
+                    if ( err )
+                    {
+                        console.log( err );
+                    } else {
+                        console.log( "New prefab group saved: data/"+ fprefix + filename );
+                    }
+                });
+                res.send({'result': 'OK', 'filename': filename })
+                return
+            } else {
+                if ( retries > 0 )
+                {
+                    retries--;
+                    setTimeout( waitForPositions, 1000 )
+                } else {
+                    console.log( "save_prefabs: ran out of retries" )
+                    res.send({'result':'Fail'})
+                    return
+                }           
+            }
+        }
+        waitForPositions()
+    }
+}))
+
+server.get('/download_prefab', asyncMid( async ( req, res, next ) => {
+    if ( authenticated( req ) )
+    {
+        if ( !!req.query.filename )
+        {
+            let fprefix = req.sessionID + "_"
+            let filename = req.query.filename
+            res.download( path.join(__dirname, 'data/'+ fprefix + filename ), filename, next )
+            return
+        } else {
+            res.status(404).end()
+            return
+        }
+    } else {
+        console.log("not authenticated")
+        res.send( { "err": "not authenticated" } )
+        return
+    }
+}))
+
+server.post('/load_prefabs_input', asyncMid( async( req, res, next ) => {
+    if ( authenticated( req ) )
+    {
+        let filename = req.files.prefablist.name
+        let md5sum = req.files.prefablist.md5
+        let fileData = req.files.prefablist.data.toString('utf-8')
+        let jsonData = JSON.parse( fileData )
+        if ( jsonData.prefabs.length )
+        {
+            loadedPrefabLists[ md5sum ] = jsonData
+        }
+        console.log( loadedPrefabLists )
+        res.send({'result':'OK', 'md5': md5sum, 'filename': filename, 'data': jsonData})
+    } else {
+        res.status( 401 ).end()
+        return
+    }
+}))
+
+server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
+    if ( authenticated( req ) )
+    {
+        let prefabList = loadedPrefabLists[ req.body.md5sum ]
+        let useExactCoordinates = ( prefabList.header.exact )
+        let userId = getATTSession(req).getUserId()      
+        let moffset = [ 
+            parseFloat(req.body.moffset_x), 
+            parseFloat(req.body.moffset_y),
+            parseFloat(req.body.moffset_z)
+        ]
+        let translatedPrefabs = clone( prefabList.prefabs )
+
+        // If a persistent offset is specified, also apply it
+        if ( !!prefabList.header.offset )
+        {
+            let poffset = [
+                parseFloat( prefabList.header.offset[0] ),
+                parseFloat( prefabList.header.offset[1] ),
+                parseFloat( prefabList.header.offset[2] ),
+            ]
+            moffset[0] = moffset[0] + poffset[0]
+            moffset[1] = moffset[1] + poffset[1]
+            moffset[2] = moffset[2] + poffset[2]
+        }
+                
+        console.log( "group position offset:")
+        console.log( moffset )
+        let keyCoords = {
+            Position : [ 0, 0, 0 ],
+            Rotation : [ 0, 0, 0 ]
+        }
+        let conn = getConnection(req)
+
+        // Apply the offset to the supplied coordinates
+        console.log("original prefabs list")
+        console.log( prefabList.prefabs)
+        console.log("slice copy")
+        console.log( translatedPrefabs )
+        for( let i = 0; i < translatedPrefabs.length; i++ )
+        {
+            let item = translatedPrefabs[i]
+            item.Position[0] = parseFloat(item.Position[0]) + moffset[0]
+            item.Position[1] = parseFloat(item.Position[1]) + moffset[1]
+            item.Position[2] = parseFloat(item.Position[2]) + moffset[2]
+            
+            translatedPrefabs[i] = item
+        }
+        console.log("original")
+        console.log( prefabList.prefabs )
+        console.log("slice copy with predefined offsets")
+        console.log( translatedPrefabs )
+
+
+        if ( useExactCoordinates )
+        {
+            conn.onMessage = (message) => {
+                console.log( message )
+                return
+            }
+            spawnPrefabsFromList()
+        } else {
+            // First get coords of the Builder Key
+            new Promise( ( resolve, reject ) => {
+                conn.onMessage = function ( message ) {
+                    console.log( message )
+                    if ( !!message.data.Exception ) {
+                        reject()                        
+                        return
+                    }
+                    if ( message.data.Command.FullName == 'select.prefab' )
+                    {
+                        // After selecting the key, find it's position
+                        conn.send("select get")
+                    } else if ( message.data.Command.FullName == 'select.get' ) {
+                        // Update the position of the key                        
+                        if ( message.data.Result.Name.match(/Key\ Standard/) )
+                        {
+                            keyCoords.Position = message.data.Result.Position
+                            keyCoords.Rotation = message.data.Result.Rotation
+                            console.log("got key coordinates:")
+                            console.log( keyCoords )
+
+                            // Update the coordinates
+                            for ( let i = 0; i < translatedPrefabs.length; i++ )
+                            {
+                                let item = translatedPrefabs[i]
+                                item.Position[0] = Number( item.Position[0] + keyCoords.Position[0] ).toFixed(6)
+                                item.Position[1] = Number( item.Position[1] + keyCoords.Position[1] ).toFixed(6)
+                                item.Position[2] = Number( item.Position[2] + keyCoords.Position[2] ).toFixed(6)
+                                
+                                translatedPrefabs[i] = item
+                            }
+                            resolve()
+                        }
+                    }                    
+                }                
+                conn.send( "select prefab keystandard "+ userId )
+            }).then( () => {
+                spawnPrefabsFromList()
+            })
+        }
+            
+        /*
+        async function spawnPrefabsFromList() {
+            console.log(translatedPrefabs)
+            for ( let i = 0; i < translatedPrefabs.length; i++ )
+            {
+                let item = translatedPrefabs[i]
+                let pos = item.Position
+                let rot = item.Rotation
+                let itemCount = 1
+                console.log( item )
+                let command = "spawn exact "
+                        + pos[0].toString() +"," + pos[1].toString() +"," + pos[2].toString() +" "
+                        + rot[0].toString() +"," + rot[1].toString() +"," + rot[2].toString() +" "
+                        + item.Name.replace(/\s/g,'') +" "
+                        + itemCount
+                console.log( command )
+                await getConnection(req).send( command )
+            }
+        }
+        */
+
+        
+        function spawnPrefabsFromList( ind ) {
+            return new Promise( (resolve, reject) => {
+                if ( ind === undefined ) ind = 0
+                if ( translatedPrefabs.length > 0 && ind < translatedPrefabs.length )
+                {
+                    console.log("spawning prefab from list ["+ ind +"]")
+                    let item = translatedPrefabs[ind]
+                    console.log( item )
+                    let pos = item.Position
+                    let rot = item.Rotation
+    
+                    conn.onMessage = ( message ) => {
+                        console.log( "spawnPrefabsFromList message:")
+                        console.log( message )
+                        if ( !!message.data.Command )
+                        {
+                            let command = ''
+                            switch( message.data.Command.FullName )
+                            {
+                                case 'spawn.':
+                                case 'spawn.exact':
+                                    //command = "select move exact "+ item.Position.join(',')
+                                    command = "select rotate exact "+ item.Rotation.join(',')
+                                break
+
+                                case 'select move.exact':
+                                    command = "select rotate exact "+ item.Rotation.join(',')
+                                break
+
+                                case 'select rotate.exact':
+                                    // Last step, resolve the promise
+                                    resolve()
+                                break
+                            }
+                            if ( command != '' )
+                            {
+                                console.log( command )
+                                conn.send(command)
+                            }
+                        }
+                    }
+                    let itemCount = 1
+                    console.log( item )
+                    let command = "spawn exact "
+                            + pos[0].toString() +"," + pos[1].toString() +"," + pos[2].toString() +" "
+                            + rot[0].toString() +"," + rot[1].toString() +"," + rot[2].toString() +" "
+                            + item.Name.replace(/\s/g,'') +" "
+                            + itemCount
+                    //let command = 'spawn '+ userId +' '+ item.Name.replace(/\s/g,'')
+                    conn.send( command )
+
+                } else {
+                    if ( ind >= translatedPrefabs.length ) 
+                    {
+                        console.log("finished spawning prefab list")
+                        resolve()
+                    } else {
+                        console.log("finished prematurely, empty prefab list?")
+                        reject()
+                    }
+                }
+            }).then( () => {
+                if ( ind < translatedPrefabs.length )
+                {
+                    console.log("spawning next prefab")
+                    spawnPrefabsFromList( ind + 1 )
+                }
+            })
+        }
+
+        res.send({'result':'OK'})
+        return
+
+    } else {
+        res.status( 401 ).end()
+        return
+    }
+}))
+
 server.post('/ajax', asyncMid( async( req, res, next ) => {
     console.log( req.body )
     let response = {}
@@ -358,8 +721,12 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 return;
 
                 case "select_find":
-                    let distance = 20;
-                    command = "select find "+ getATTSession(req).getUsername() +" "+ distance 
+                    let diameter = 20;
+                    if ( !!req.body.diameter )
+                    {
+                        diameter = req.body.diameter    
+                    }
+                    command = "select find "+ getATTSession(req).getUsername() +" "+ diameter 
                     console.log( command )
                     await getConnection(req).send( command )
                 return;
@@ -390,6 +757,8 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         command = "trade post "+ req.body.player +" "+ req.body.hash
                         if ( req.body.count > 1 )
                             command += " "+ req.body.count
+                        if ( !!req.body.args )
+                            command += " "+ req.body.args
                         console.log( command )
                         await getConnection(req).send( command )
                     } else {
@@ -403,6 +772,9 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         command = "spawn "+ req.body.player +" "+ req.body.hash
                         if ( req.body.count > 1 )
                             command += " "+ req.body.count
+                        if ( !!req.body.args )
+                            command += " "+ req.body.args
+
                         console.log( command )
                         await getConnection(req).send( command )
                     } else {
@@ -439,7 +811,12 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 return;
 
                 case "get_player_config":
-                    command = "player list-stat"
+                    let userId = ''
+                    if ( !!req.body.player )
+                    {
+                        userId = req.body.player 
+                    }
+                    command = "player list-stat "+ userId
                     console.log( command )
                     await getConnection(req).send( command )
                 return;
@@ -594,24 +971,25 @@ async function loadSpawnableItems( req )
 {
     return new Promise( ( resolve, reject ) => {
         let conn = getConnection( req )
-        conn.onMessage = (data) => {
-            console.log( "this is loadSpawnableItems onMessage" )
-            console.log( data.data.Result )
-            if ( !!data.data.Result && data.data.Result.length > 0 )
-            {
-                spawnableItemsList = data.data.Result
-                spawnableItemsList.sort((a, b) => {
-                    al = a.Name.toLowerCase()
-                    bl = b.Name.toLowerCase()
-                    return ( al > bl ) ? 1 : -1
-                })
-                return resolve()
-            } else {
-                return reject()
+        if ( !!conn ) 
+        {
+            conn.onMessage = (data) => {
+                if ( !!data.data.Result && data.data.Result.length > 0 )
+                {
+                    spawnableItemsList = data.data.Result
+                    spawnableItemsList.sort((a, b) => {
+                        al = a.Name.toLowerCase()
+                        bl = b.Name.toLowerCase()
+                        return ( al > bl ) ? 1 : -1
+                    })
+                    return resolve()
+                } else {
+                    return reject()
+                }
             }
+            console.log( "loadSpawnableItems getting spawnables list" )
+            conn.send( "spawn list" )  
         }
-        console.log( "loadSpawnableItems getting spawnables list" )
-        conn.send( "spawn list" )
     })
 }
 

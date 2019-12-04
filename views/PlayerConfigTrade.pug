@@ -14,18 +14,21 @@ div#PlayerConfigTradeDialog.Controls.w-100.pt-2.pb-2
                 each item in spawnableItems
                     a.list-group-item.text-left(id=item.Hash name=item.Name) #{item.Hash} - #{item.Name}
 
+    div.ControlsMini.d-flex.w-100.m-0
+        i.fas.fa-code.px-2
+        input#TradeItemsSpawnArguments.form-control.w-100(style="flex:1" type="text" placeholder="spawn arguments")
+
     div.ContentRow
-        div.row.d-flex.w-100
-            div.mr-auto.pt-3.d-flex
-                input#TradeItemsCount_step(type="hidden" value="1")
-                input#TradeItemsCount_min(type="hidden" value="1")
-                a.col.minusInt.text-center(name="TradeItemsCount")
-                    i(class="fas fa-minus")
-                div.col.text-center(style="flex:1")
-                    span#TradeItemsCount 1
-                a.col.plusInt.text-center(name="TradeItemsCount" style="flex:1")
-                    i(class="fas fa-plus")
-            div.ml-auto.pt-2.mx-2(style="flex:1")
+        div.row.w-100.pt-2
+            input#TradeItemsCount_step(type="hidden" value="1")
+            input#TradeItemsCount_min(type="hidden" value="1")
+            a.col-1.minusInt.text-center(name="TradeItemsCount")
+                i.pt-3(class="fas fa-minus")
+            div.col-3.text-center.pt-1
+                input#TradeItemsCount.form-control(type="text" value="1")
+            a.col-1.plusInt.text-center(name="TradeItemsCount" style="flex:1")
+                i.pt-3(class="fas fa-plus")
+            div.col.mx-2(style="flex:1")
                 a#TradeItemsPostBtn.ControlsMini.w-100.text-center.align-middle Post
-            div.ml-auto.pt-2.mx-2(style="flex:1")
+            div.col.mx-2(style="flex:1")
                 a#TradeItemsSpawnBtn.ControlsMini.w-100.text-center.align-middle Spawn

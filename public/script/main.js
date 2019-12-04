@@ -2,6 +2,7 @@ var selectedPrefabId = null;
 var selectedPlayerName = null;
 var selectedConfigForm = null;
 var currentPlayersList = null;
+var currentLoadedPrefabList = null;
 
 $(document).ready(() => {
 
@@ -32,20 +33,48 @@ $(document).ready(() => {
         $("div#Controls").show()
     })
 
-    $("#SelectNav").click( () => {
+    $("#PrefabsNav").click( () => {
         $(".topnav").toggleClass("active", false)
         $(".Message").hide()
-        $("#SelectNavLi").toggleClass("active")
+        $("#PrefabsNavLi").toggleClass("active")
         $("#SelectedPrefabHistory").show()
-        $("#SelectFindDialog").show()
+        $("div#Prefabs").show()
     })
 
-    $("#SearchNav").click( () => {
+    $("#BuilderNav").click( () => {
         $(".topnav").toggleClass("active", false)
         $(".Message").hide()
-        $("#SearchNavLi").toggleClass("active")
-        $("#SelectedPrefabHistory").show()
-        $("div#Search").show()
+        $("#BuilderNavLi").toggleClass("active")
+        $("#SelectedPrefabHistory").hide()
+        $("div#Builder").show()
+    })
+
+    $("div#Prefabs #FindPrefabsNav").click( () => {
+        $(".prefabsnav").toggleClass("active", false)
+        $(".SubMessage").hide()
+        $("#FindPrefabsNav").toggleClass("active")
+        $("#FindPrefabs").show()
+    })
+
+    $("div#Prefabs #SpawnPrefabsNav").click( () => {
+        $(".prefabsnav").toggleClass("active", false)
+        $(".SubMessage").hide()
+        $("#SpawnPrefabsNav").toggleClass("active")
+        $("#SpawnPrefabs").show()
+    })
+
+    $("div#Builder #SavePrefabsNav").click( () => {
+        $(".prefabsnav").toggleClass("active", false)
+        $(".SubMessage").hide()
+        $("#SavePrefabsNav").toggleClass("active")
+        $("#SavePrefabsDialog").show()
+    })
+
+    $("div#Builder #LoadPrefabsNav").click( () => {
+        $(".prefabsnav").toggleClass("active", false)
+        $(".SubMessage").hide()
+        $("#LoadPrefabsNav").toggleClass("active")
+        $("#LoadPrefabsDialog").show()
     })
 
     $("#RotateAngle1").click( () => setAngle( 1, $("#RotateAngle1") ))
@@ -66,7 +95,9 @@ $(document).ready(() => {
 
     $("#DestroySelectedPrefab").click( ( e ) => deletePrefab( selectedPrefabId, $("#ClosestPrefab b")) )
 
-    $("#SelectFind").click( ( e ) => selectFind( e.currentTarget, $("#SelectFindItems") ) )
+    $("#SelectFind").click( ( e ) => {
+        selectFind( e.currentTarget, $("#SelectFindItems"), $("#FindPrefabs #FindPrefabsScanDiameter").val() )
+    })
 
     $("#SelectFindItems").on( 'click', '.SelectablePrefab', (e) => { 
         selectedPrefabId = e.target.id;
@@ -104,8 +135,9 @@ $(document).ready(() => {
 
     $("#SearchSpawnItem").click( ( e ) => {
         let activeItem = $("#SelectNearestItems").find("button.active").attr('id')
+        let args = $("#SearchSpawnArguments").val()
         if ( activeItem !== undefined )
-            spawnPrefab( e.currentTarget, activeItem, $("#SpawnCount").val(), $("#ClosestPrefab b"))
+            spawnPrefab( e.currentTarget, activeItem, $("#SpawnCount").val(), args, $("#ClosestPrefab b"))
         else
             flash( e.currentTarget, "255, 20, 20")
     })
@@ -679,7 +711,7 @@ $(document).ready(() => {
         let parent = selectedConfigForm
         $(parent +" TradeItemsGroup").toggleClass("active", false)
         $(e.currentTarget).toggleClass("active")
-        $(parent +" #TradeItemsCount").html('1')
+        $(parent +" #TradeItemsCount").val(1)
     })
 
     $("#PlayerConfigTradeDialog #TradeItemsSearch").keyup( (e) => {
@@ -710,12 +742,14 @@ $(document).ready(() => {
         let player = selectedPlayerId
         let parentToActive = parent + " div.TradeItemsGroup a.list-group-item.active"
         let selectedItem = $(parentToActive).first().attr('id')
-        let count = parseInt( $(parent +" #TradeItemsCount").html() )
+        let count = parseInt( $(parent +" #TradeItemsCount").val() )
+        let args = $( parent +" #TradeItemsSpawnArguments").val()
         dataSet = {
             'action': 'post_prefab',
             'player': player,
             'hash': selectedItem,
-            'count': count
+            'count': count,
+            'args': args
         }
         console.log( dataSet )
         $.ajax({ type:'post', url:'/ajax', data: dataSet, dataType: 'json'})
@@ -734,12 +768,14 @@ $(document).ready(() => {
         let player = selectedPlayerId
         let parentToActive = parent + " div.TradeItemsGroup a.list-group-item.active"
         let selectedItem = $(parentToActive).first().attr('id')
-        let count = parseInt( $(parent +" #TradeItemsCount").html() )
+        let count = parseInt( $(parent +" #TradeItemsCount").val() )
+        let args = $( parent +" #TradeItemsSpawnArguments").val()
         dataSet = {
             'action': 'spawn_prefab',
             'player': player,
             'hash': selectedItem,
-            'count': count
+            'count': count,
+            'args': args
         }
         console.log( dataSet )
         $.ajax({ type:'post', url:'/ajax', data: dataSet, dataType: 'json'})
@@ -758,12 +794,12 @@ $(document).ready(() => {
         let target = "#"+ e.currentTarget.name
         let step = parseInt( $(parent +" "+ target +"_step").val() ) || 1
         let min = parseInt( $(parent +" "+ target +"_min").val() ) || 0
-        let val = parseInt( $(parent +" "+ target).html() )
+        let val = parseInt( $(parent +" "+ target).val() )
         let newVal = val - step
         if ( newVal < min )
             newVal = min
 
-        $(parent +" "+ target).html( newVal )
+        $(parent +" "+ target).val( newVal )
     })
 
     $("a.plusInt").click( (e) => {
@@ -771,12 +807,12 @@ $(document).ready(() => {
         let target = "#"+ e.currentTarget.name
         let step = parseInt( $(parent +" "+ target +"_step").val() ) || 1
         let max = parseInt( $(parent +" "+ target +"_max").val() ) || null
-        let val = parseInt( $(parent +" "+ target).html() )
+        let val = parseInt( $(parent +" "+ target).val() )
         let newVal = val + step
         if ( !!max && newVal > max )
             newVal = max
 
-        $(parent +" "+ target).html( newVal )
+        $(parent +" "+ target).val( newVal )
     })
 
     $("#ServerMessages a#ServerMsgSendBtn").click(( e ) => {
@@ -925,6 +961,140 @@ $(document).ready(() => {
         }
     })
 
+    $("#ServerSelect #ServerSearch").keyup( (e) => {
+        let parent = "#ServerSelect"
+        let value = $(e.target).val().trim().toLowerCase()
+        let itemsGroup = $(parent + " #SelectServerList .list-group-item")
+        itemsGroup.toggleClass("active", false)
+        if ( value == '' )
+        {
+            itemsGroup.show()
+        } else {
+            itemsGroup.each((i, elem) => {
+                let hasMatch = 
+                ( 
+                  $(elem).attr('id').toLowerCase().indexOf( value ) > -1
+                  || $(elem).text().toLowerCase().indexOf( value ) > -1
+                )
+                if ( hasMatch )
+                    $(elem).show()
+                else
+                    $(elem).hide()  
+            })
+        }
+    })
+
+    $("div#Builder #BuilderScanNearbyPrefabs").click( ( e ) => {
+        let diameter = $("div#Builder #SavePrefabListScanDiameter").val()
+        console.log( diameter )
+        scanNearbyPrefabs( e.currentTarget, $("div#Builder #ScanNearbyPrefabsItems"), diameter )
+    })
+    
+    $("div#Builder #SavePrefabListToFile").click( ( e ) => {
+        let itemList = []
+        let exactCoords = $("div#Builder #SavePrefabListExactPositions").is(":checked")
+        $("div#Builder #ScanNearbyPrefabsItems .ScannedPrefab").each( (ind, item) => {
+            console.log( ind )
+            console.log( item )
+            console.log( "send this list of items to the server to gather coords then return a JSON file download with the contents")
+            itemList.push( { 'id': $(item).attr('id'), 'name': $(item).attr('name') } )
+        })
+        $.ajax({
+            type:'post',
+            url:'/save_prefabs',
+            data: JSON.stringify( { 'exact': exactCoords, 'items' : itemList } ),
+            contentType: "application/json",
+            dataType: 'json'
+        })
+        .done( (data) => {
+            if ( data.result == 'OK' )
+            {
+                flash( e.target, "20, 255, 20" )
+                // Prompt to download the file
+                window.location = 'download_prefab?filename='+ data.filename
+            } else {
+                flash( e.target, "255, 20, 20" )
+            }
+        })
+    })
+
+    $("div#Builder #SpawnBuilderTokenItem").click( ( e ) => {
+        spawnPrefab( e.currentTarget, "KeyStandard", 1 )    
+    })
+
+    $("div#Builder #LoadPrefabListFromFile").click( ( e ) => {
+        $("div#Builder #LoadPrefabListFromFileInput").click()
+    })
+
+    $("div#Builder #LoadPrefabListFromFileInput").change( ( e ) => {
+        $("div#Builder #LoadPrefabListDetails").hide()
+        $("div#Builder #LoadPrefabListFromFileForm").submit()
+    })
+
+    $("div#Builder #LoadPrefabListFromFileForm").on( 'submit', ( e ) => {
+        e.preventDefault()
+        let form_data = new FormData( $("#LoadPrefabListFromFileForm")[0] )
+        $("div#Builder #LoadPrefabListExactCoords").hide()
+        console.log( form_data )
+        $.ajax({
+            type:'POST',
+            url:'/load_prefabs_input',
+            data: form_data,
+            contentType: false,
+            processData: false
+        })
+        .done( (data) => {
+            console.log( "ajax file upload success" )
+            console.log( data )
+            let header = data.data.header
+            let prefablist = data.data.prefabs
+            let listGroup = $("div#Builder #LoadPrefabListItems")
+            listGroup.empty()
+            function nfilter(x) { return Number.parseFloat(x).toFixed(2) }
+            for( let i = 0; i < prefablist.length; i++ )
+            {
+                listGroup.append("<div class='PrefabListItem row w-100'><span class='col'>"+ prefablist[i].Name +"</span></div>")
+            }
+            currentLoadedPrefabList = data.md5
+            $("div#Builder #LoadPrefabListAuthor").html(header.player)
+            $("div#Builder #LoadPrefabListFilename").html(data.filename)
+            if ( header.exact ) $("div#Builder #LoadPrefabListExactCoords").show()
+            $("div#Builder #LoadPrefabListDetails").show()
+            console.log( currentLoadedPrefabList )
+        })
+    })
+
+    $("div#Builder #LoadPrefabListSpawnItems").click( ( e ) => {
+        console.log( currentLoadedPrefabList )
+        let moffset_x = Number($("div#Builder #LoadPrefabsOffsetX").val()).toFixed(6)
+        let moffset_y = Number($("div#Builder #LoadPrefabsOffsetY").val()).toFixed(6)
+        let moffset_z = Number($("div#Builder #LoadPrefabsOffsetZ").val()).toFixed(6)
+        console.log( moffset_x )
+        console.log( moffset_y )
+        console.log( moffset_z )
+        dataSet = {
+            'md5sum' : currentLoadedPrefabList,
+            'moffset_x' : moffset_x,
+            'moffset_y' : moffset_y,
+            'moffset_z' : moffset_z
+        }
+        $.ajax({
+            type: 'post',
+            url: '/load_prefabs',
+            data: dataSet,
+            dataType: 'json'
+        })
+        .done( (data) => {
+            if ( data.result == 'OK' )
+            {
+                flash( e.currentTarget, "20, 255, 20" )
+            }
+        })
+    })
+
+    $("div#Builder #ScanNearbyPrefabsItems").on('click', 'a.trash_prefab', ( e ) => {
+        $(e.currentTarget).parent().remove()
+    })
 })
 
 function deletePrefab( id, selectDisplay ) {
@@ -988,15 +1158,15 @@ function findNearestPrefabById( e, id, selectDisplay ) {
                 dataType: 'json'
             })
             .done( (data) => {
-                if ( !!data.data.ResultString )
+                if ( !!data.data.Result )
                 {
-                    let prefabIds = data.data.ResultString.split(' ')
-                    selectedPrefabId = parseInt( prefabIds[0], 10 )
+                    let [prefabId, dash, prefabName] = data.data.Result.Name.split(' ')
+                    selectedPrefabId = parseInt( prefabId, 10 )
                 }
 
                 $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()               
                 $("#SelectedPrefabSelect").append(
-                    new Option( data.data.ResultString, selectedPrefabId, false, true )
+                    new Option( data.data.Result.Name, selectedPrefabId, false, true )
                 )
                 $('#DestroySelectedPrefab').show()
             })
@@ -1009,12 +1179,12 @@ function findNearestPrefabById( e, id, selectDisplay ) {
     })
 }
 
-function spawnPrefab( e, id, count, selectDisplay ) {
+function spawnPrefab( e, id, count, args, selectDisplay ) {
     let player = $("input#PlayerConfigUserId").val()
     $.ajax({
         type:'post',
         url:'/ajax',
-        data: {'action': 'spawn_prefab', 'player': player, 'hash': id, 'count': count },
+        data: {'action': 'spawn_prefab', 'player': player, 'hash': id, 'count': count, 'args': args },
         dataType: 'json'
     })
     .done( (data) => {
@@ -1022,7 +1192,7 @@ function spawnPrefab( e, id, count, selectDisplay ) {
         {
             console.log( data )
             console.log( data.data.Result )
-            flash( e.currentTarget, "20, 255, 20" )
+            flash( e, "20, 255, 20" )
             if ( !!data.data.Result )
             {
                 selectedPrefabId = data.data.Result[0].Identifier
@@ -1036,18 +1206,63 @@ function spawnPrefab( e, id, count, selectDisplay ) {
         } else {
             $( e ).css('pointer-events', 'auto')
             let color = "255, 20, 20"
-            flash( e.currentTarget, color )
+            flash( e, color )
             updateServer( data )
         }
     })
 }
 
-
-function selectFind( elem, dest ) {
+function scanNearbyPrefabs( elem, dest, diameter ) {
+    let dataSet = {'action': 'select_find'}
+    if ( diameter !== undefined )
+    {
+        dataSet.diameter = diameter
+    } else {
+        dataSet.diameter = 10
+    }
     $.ajax({
         type:'post',
         url:'/ajax',
-        data: {'action': 'select_find'},
+        data: dataSet,
+        dataType: 'json'
+    })
+    .done( (data) => {
+        if ( data.result == 'OK' )
+        {
+            if ( data.data.Result !== undefined )
+            {
+                $('.ScannedPrefab').remove()
+                let itemList = data.data.Result
+                itemList.sort( function(a, b) { return ( a.Name.toUpperCase() > b.Name.toUpperCase() ) ? 1 : -1 } )
+                console.log( "iterating data.data.Result ")
+                console.log( itemList )
+                for( var i = 0; i < itemList.length; i++ ){
+                    let item = itemList[i]
+                    if ( item.Name.includes("VR Player") ) continue;
+                    if ( item.Name.includes("Key Standard") ) continue;
+                    
+                    $(dest).append("<div class='ScannedPrefab row w-100' id='"+ item.Identifier +"' name='"+ item.Name +"'><span class='col mr-auto'>"+ item.Name +"</span><a class='col-1 ml-auto trash_prefab' id='"+ item.Identifier +"'><i class='fas fa-window-close'/></a></div>")
+                }
+            }
+        }
+        $("#SavePrefabListToFileButton").show()
+        updateServer(data)
+    })    
+}
+
+
+function selectFind( elem, dest, diameter ) {
+    let dataSet = {'action': 'select_find'}
+    if ( diameter !== undefined )
+    {
+        dataSet.diameter = diameter
+    } else {
+        dataSet.diameter = 10
+    }
+    $.ajax({
+        type:'post',
+        url:'/ajax',
+        data: dataSet,
         dataType: 'json'
     })
     .done( (data) => {
@@ -1154,10 +1369,25 @@ function updateServer( data )
 
 async function loadPlayerConfig( userId, parentElem )
 {
+    const statInputByName = {
+        'health': 'Health Stat',
+        'maxhealth': 'MaxHealth Stat',
+        'speed': 'Speed Stat',
+        'damage': 'Damage Stat',
+        'poison': 'Poison Stat',
+        'hunger': 'Hunger Stat',
+        'damageprotection': 'Damage Protection Stat',
+        'recentlydamagedstat': 'RecentlyDamageStat',
+        'luminosity': 'Luminosity',
+        'cripple': 'Cripple Health Stat',
+        'crippleprotection': 'Cripple Damage Protection Stat',
+        'xpboost': 'ExperienceBoost' 
+    }
+
     $.ajax({
         type: 'post',
         url: '/ajax',
-        data: { 'action': 'get_player_config', player : null },
+        data: { 'action': 'get_player_config', 'player' : userId },
         dataType: 'json'
     })
     .done( (data) => {
@@ -1168,17 +1398,18 @@ async function loadPlayerConfig( userId, parentElem )
 
             $(parentElem +" input.SetPlayerConfig").each( (i, elem) => {
                 let name = elem.name
-                let config = conf.find(obj => { return obj.Name === name })
+                let config = conf.find(obj => { return obj.Name === statInputByName[ name ] })
                 console.log(elem)
                 console.log(config)
-                $(elem).attr('min', config.DefaultMin)
-                $(elem).attr('max', config.DefaultMax)
+                $(elem).attr('min', config.Min)
+                $(elem).attr('max', config.Max)
+                $(elem).val( Number(config.Value).toFixed(3) )
                 $(elem).attr('step', '1' )
 
                 if ( name == 'health' )
                 {
                     $(elem).attr('min', '0.1')
-                    $(elem).attr('max', conf.find(x=>{return x.Name === 'maxhealth'}).DefaultMax )
+                    $(elem).attr('max', conf.find(x=>{return x.Name === statInputByName['maxhealth']}).Max )
                 }
             })
         }

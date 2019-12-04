@@ -1,5 +1,5 @@
-div#Search.Message(class="container hidden")
-    div.ControlsMini.d-flex.m-0
+div#SpawnPrefabs.SubMessage.pt-3(class="container hidden")
+    div.ControlsMini.d-flex.w-100.m-0
         i(class="fas fa-search px-2")
         input#SearchNearestItems.form-control.w-100(style="flex:1" type="text" placeholder="Search spawnable items")
 
@@ -9,16 +9,19 @@ div#Search.Message(class="container hidden")
                 each item in spawnableItems
                     button(class="FindablePrefab list-group-item list-group-item-action text-left" id=item.Hash name=item.Name) #{item.Hash} - #{item.Name}
 
+    div.ControlsMini.d-flex.w-100.m-0
+        i.fas.fa-code.px-2
+        input#SearchSpawnArguments.form-control.w-100(style="flex:1" type="text" placeholder="spawn arguments")
+
     div.ContentRow(class="row")
-        a#SearchFindNearest.ControlsMini(class="col text-center border-right") Find Nearest        
-        div.col-2
-        div.input-group(class="col text-right text-center")
+        a#SearchFindNearest.ControlsMini.col-auto.text-center.mr-auto.p-2.px-3 Find Nearest                
+        div.input-group.col.text-center.ml-auto.mt-1
             span.input-group-btn(class='btn')
                 a#SpawnCountMinus(class="text-center")
                     i(class="fas fa-minus")
-            input#SpawnCount.form-control(type="text" value="1" style="padding-left: 5px; padding-right: 5px;")
+            input#SpawnCount.form-control.px-1(type="text" value="1")
             span.input-group-btn(class='btn')
                 a#SpawnCountPlus(class="text-center")
                     i(class="fas fa-plus")
-        a#SearchSpawnItem.ControlsMini(class="col-3 text-center") Spawn Item
+        a#SearchSpawnItem.ControlsMini.col-auto.text-center.p-2.px-3 Spawn Item
 

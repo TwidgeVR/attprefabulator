@@ -1,0 +1,16 @@
+div#FindPrefabs.SubMessage.pt-3(class="container hidden")
+    div.ContentRow.row
+        div.col-auto.mt-2
+            label(for="SavePrefabListScanDiameter") Scan diameter:
+        div.col-2.p-1.mr-auto
+            input#FindPrefabsScanDiameter.form-control.p-1.m-0(type="text" value="30")
+        div.col.ml-auto                        
+            a#SelectFind.ControlsMini(class="col text-center") Scan Nearby Items 
+    
+    div.d-flex.pt-3
+        i(class="fas fa-search pr-2 pt-2")
+        div.w-100.pb-1.mb-1(style="flex:1")
+            input#SelectFindSearch.form-control.w-100(type="text" placeholder="Search Prefabs")
+    
+    div.ContentRow(class="row")
+        div#SelectFindItems(class="list-group")

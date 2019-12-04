@@ -9,10 +9,10 @@ block layout-content
         ul(class="container")
             li#ControlsNavLi(class="topnav navbar-brand col text-center active")
                 a#ControlsNav Control
-            li#SelectNavLi(class="topnav navbar-brand col text-center")
-                a#SelectNav Select
-            li#SearchNavLi(class="topnav navbar-brand col text-center")
-                a#SearchNav Search                      
+            li#PrefabsNavLi(class="topnav navbar-brand col text-center")
+                a#PrefabsNav Spawn | Find
+            li#BuilderNavLi(class="topnav navbar-brand col text-center")
+                a#BuilderNav Save | Load                      
 
     div#SelectedPrefabHistory.ContentRow.container
         div.ControlsMini.d-flex.w-100
@@ -25,8 +25,8 @@ block layout-content
                 i(class="fas fa-trash-alt", alt="Delete Selected Prefab")
 
     include Controls.pug
-    include SelectPrefabs.pug        
-    include SearchPrefabs.pug
+    include Prefabs.pug
+    include Builder.pug
     include ServerConfig.pug
     include CommandTerminal.pug
     include ServerMessages.pug
