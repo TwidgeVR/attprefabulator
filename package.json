@@ -1,6 +1,6 @@
 {
   "name": "prefabulator",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "productName": "Prefabulator",
   "description": "Add, remove and modify prefabs in A Township Tale",
   "main": "electron-start.js",
