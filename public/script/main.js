@@ -984,6 +984,63 @@ $(document).ready(() => {
         }
     })
 
+    $("a#SelectServerSort").click(( e ) => {
+        let parent = "#ServerSelect"
+        let itemtype = $(e.target).data('itemtype')
+        let serversList = parent + " #SelectServerList"
+        let serversListItems = $(serversList + " .list-group-item")
+        let sortDirection = $(serversList).data('sortdirection')
+        let sortPlayerIcon = $(parent + " #SortPlayerIcon")
+        let sortServerIcon = $(parent + " #SortServerIcon")
+        if ( sortDirection == "asc" ) {
+            sortDirection = "desc"
+            sortIcon = "fa-sort-up"
+        } else {
+            sortDirection = "asc"
+            sortIcon = "fa-sort-down"
+        }
+        $(serversList).data('sortdirection',sortDirection )
+        function sort_servers( a, b ) {
+            switch( sortDirection ) {
+                default:
+                case "asc":
+                    return ( $(b).attr('name').toLowerCase() < $(a).attr('name').toLowerCase() ) ? 1 : -1
+                break;
+                case "desc":
+                    return ( $(b).attr('name').toLowerCase() >= $(a).attr('name').toLowerCase() ) ? 1 : -1
+                break;
+            }
+        }
+        function sort_players( a, b ) {
+            if ( sortDirection == "asc" )
+                return ( $(b).data('playercount') < $(a).data('playercount') ) ? 1 : -1
+            else {
+                return ( $(b).data('playercount') >= $(a).data('playercount') ) ? 1 : -1
+            }
+        }
+        sortPlayerIcon.removeClass('fa-sort').removeClass('fa-sort-up').removeClass('fa-sort-down')
+        sortServerIcon.removeClass('fa-sort').removeClass('fa-sort-up').removeClass('fa-sort-down')
+
+        switch( itemtype ) {
+            case "servers":
+                console.log( "sort servers" )                
+                serversListItems.sort( sort_servers ).appendTo( serversList )
+                sortServerIcon.toggleClass('fa-sort-up', ( sortIcon == 'fa-sort-up' ))
+                sortServerIcon.toggleClass('fa-sort-down', ( sortIcon == 'fa-sort-down' ))
+                sortPlayerIcon.addClass('fa-sort')
+            break
+            case "players":
+                console.log( "sort players" )
+                serversListItems.sort( sort_players ).appendTo( serversList )
+                sortPlayerIcon.toggleClass('fa-sort-up', ( sortIcon == 'fa-sort-up' ))
+                sortPlayerIcon.toggleClass('fa-sort-down', ( sortIcon == 'fa-sort-down' ))
+                sortServerIcon.addClass('fa-sort')
+            break
+        }
+
+        
+    })
+
     $("div#Builder #BuilderScanNearbyPrefabs").click( ( e ) => {
         let diameter = $("div#Builder #SavePrefabListScanDiameter").val()
         console.log( diameter )

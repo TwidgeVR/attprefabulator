@@ -186,7 +186,8 @@ server.post('/login', asyncMid( async(req, res, next) => {
 server.get('/servers', asyncMid( async (req, res, next) => {
     if( authenticated( req ) )
     {
-        var servers = await getATTServers(req).getOnline()
+        var servers = await getATTServers(req).getConsoleServers()
+        //var servers = await getATTServers(req).getOnline()
         console.log( servers )
         if ( !!servers )
         {

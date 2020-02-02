@@ -14,12 +14,16 @@ block layout-content
                     input#ServerSearch.form-control.w-100(type="text" placeholder="Search Servers")
 
             div.ContentRow(class='row')
-                div(class="col-8 text-left") Server
-                div(class="col-4 text-center") Players
+                a#SelectServerSort(data-itemtype="servers" class="col-7 bg-light text-left ml-auto mr-2") Server
+                    i#SortServerIcon(class="fas fa-sort pl-2 pt-2")
+                a#SelectServerSort(data-itemtype="players" class="col-4 bg-light text-center mr-auto ml-auto") Players
+                    i#SortPlayerIcon(class="fas fa-sort pl-2 pt-2")
             div.ContentRow(class="row")
-                div#SelectServerList.list-group
+                div#SelectServerList(data-sortdirection="none").list-group
                     each server in serverList
-                        div(class="ServerListItem list-group-item list-group-item-action text-left" id=server.id name=server.name) 
+                        div(class="ServerListItem list-group-item list-group-item-action text-left"
+                            id=server.id name=server.name
+                            data-playercount=server.online_players.length) 
                             div(class="ServerListItemName col-9") #{server.name}
                             div(class="ServerListItemOnlineCount col-3") [ #{server.online_players.length} ]
 

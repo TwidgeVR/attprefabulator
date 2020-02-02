@@ -4,7 +4,7 @@ div#SpawnPrefabs.SubMessage.pt-3(class="container hidden")
         input#SearchNearestItems.form-control.w-100(style="flex:1" type="text" placeholder="Search spawnable items")
 
     div.ContentRow(class="row")
-        div#SelectNearestItems(class="list-group")
+        div#SelectNearestItems(class="list-group" style="max-height:300px")
             if spawnableItems
                 each item in spawnableItems
                     button(class="FindablePrefab list-group-item list-group-item-action text-left" id=item.Hash name=item.Name) #{item.Hash} - #{item.Name}
