@@ -1,3 +1,4 @@
+const version = process.env.npm_package_version
 const fs = require('fs')
 const moment = require('moment')
 const clone = require('clone')
@@ -134,9 +135,9 @@ server.get('/login', ( req, res ) => {
     }
     if ( !!req.query.error )
     {
-        res.render('login', { error: req.query.error, 'savedLogin': savedLogin })
+        res.render('login', { version: version, error: req.query.error, 'savedLogin': savedLogin })
     } else {
-        res.render('login', { error: false, 'savedLogin': savedLogin })
+        res.render('login', { version: version, error: false, 'savedLogin': savedLogin })
     }
 })
 
@@ -261,7 +262,7 @@ server.get('/control', asyncMid( async ( req, res, next ) => {
                 .then(() => {
                     console.log( "rendering control" )
                     console.log( spawnableItemsList )
-                    res.render("control", { serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList })
+                    res.render("control", { version: version, serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList })
                     return
                 })
         } catch ( e ) {
