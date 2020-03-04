@@ -448,19 +448,19 @@ $(document).ready(() => {
         let operMinus = $(e.currentTarget).hasClass("minus")
         let operPlus = $(e.currentTarget).hasClass("plus")
         let target = $(parent +" input.SetPlayerConfig[name="+ name +"]")
-        let value = newVal = parseInt(target.val())
-        let step = parseInt( target.attr('step') ) || 1
-        let min = parseInt( target.attr('min') ) || 0
-        let max = parseInt( target.attr('max') ) || 10
+        let value = newVal = parseFloat(target.val())
+        let step = parseFloat( target.attr('step') )// || 1
+        let min = parseFloat( target.attr('min') ) || 0
+        let max = parseFloat( target.attr('max') ) || 10
         if ( operMinus )
         {
             newVal = value - step
-            console.log( name + " minus = "+ newVal )
+            console.log( name + " minus "+ step +" = "+ newVal )
             if ( newVal < min )
                 newVal = min                     
         } else if ( operPlus ) {
             newVal = value + step
-            console.log( name + " plus = "+ newVal )
+            console.log( name + " plus "+ step +" = "+ newVal )
             if ( newVal > max )
                 newVal = max
         }
@@ -938,8 +938,8 @@ $(document).ready(() => {
         }
     })
 
-    $("#SelectFindDialog #SelectFindSearch").keyup( (e) => {
-        let parent = "#SelectFindDialog"
+    $("#FindPrefabs #SelectFindSearch").keyup( (e) => {
+        let parent = "#FindPrefabs"
         let value = $(e.target).val().trim().toLowerCase()
         let itemsGroup = $(parent + " div#SelectFindItems button.list-group-item")
         itemsGroup.toggleClass("active", false)
@@ -1437,8 +1437,8 @@ async function loadPlayerConfig( userId, parentElem )
         'recentlydamagedstat': 'RecentlyDamageStat',
         'luminosity': 'Luminosity',
         'cripple': 'Cripple Health Stat',
-        'crippleprotection': 'Cripple Damage Protection Stat',
-        'xpboost': 'ExperienceBoost' 
+        'xpboost': 'ExperienceBoost',
+        'nightmare': 'Nightmare'
     }
 
     $.ajax({
@@ -1455,18 +1455,38 @@ async function loadPlayerConfig( userId, parentElem )
 
             $(parentElem +" input.SetPlayerConfig").each( (i, elem) => {
                 let name = elem.name
-                let config = conf.find(obj => { return obj.Name === statInputByName[ name ] })
+                let config = conf.find(obj => { return obj.Name === name })
                 console.log(elem)
                 console.log(config)
-                $(elem).attr('min', config.Min)
-                $(elem).attr('max', config.Max)
-                $(elem).val( Number(config.Value).toFixed(3) )
-                $(elem).attr('step', '1' )
-
-                if ( name == 'health' )
+                if ( config !== undefined )
                 {
-                    $(elem).attr('min', '0.1')
-                    $(elem).attr('max', conf.find(x=>{return x.Name === statInputByName['maxhealth']}).Max )
+                    $(elem).attr('min', config.Min)
+                    $(elem).attr('max', config.Max)
+                    $(elem).val( Number(config.Value).toFixed(3) )
+                    $(elem).attr('step', '1' )
+
+                    switch( name )
+                    {
+                        case 'health':
+                            $(elem).attr('step', '0.5')
+                            $(elem).attr('min', '0.1')
+                            $(elem).attr('max', conf.find( x=>{ return x.Name == "maxhealth" }).Max )
+                        break
+
+                        case 'maxhealth':
+                        case 'speed':
+                        case 'xpboost':
+                            $(elem).attr('step', '0.5')
+                        break
+
+                        case 'hunger':
+                        case 'cripplehealth':
+                        case 'nightmare':
+                            $(elem).attr('step', '0.1')
+                        break
+                    }
+                } else {
+                    console.log( "config for "+ name +" is undefined")
                 }
             })
         }
