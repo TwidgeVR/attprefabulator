@@ -1076,7 +1076,8 @@ $(document).ready(() => {
     })
 
     $("div#Builder #SpawnBuilderTokenItem").click( ( e ) => {
-        spawnPrefab( e.currentTarget, "KeyStandard", 1 )    
+        //spawnPrefab( e.currentTarget, "KeyStandard", 1 )    
+        spawnString( e.currentTarget, "builderkey" )
     })
 
     $("div#Builder #LoadPrefabListFromFile").click( ( e ) => {
@@ -1110,7 +1111,21 @@ $(document).ready(() => {
             function nfilter(x) { return Number.parseFloat(x).toFixed(2) }
             for( let i = 0; i < prefablist.length; i++ )
             {
-                listGroup.append("<div class='PrefabListItem row w-100'><span class='col'>"+ prefablist[i].Name +"</span></div>")
+                let pos = {
+                    x : nfilter( prefablist[i].Position.x ),
+                    y : nfilter( prefablist[i].Position.y ),
+                    z : nfilter( prefablist[i].Position.z )
+                }
+                let rot = {
+                    x : nfilter( prefablist[i].Rotation.x ),
+                    y : nfilter( prefablist[i].Rotation.y ),
+                    z : nfilter( prefablist[i].Rotation.z ),
+                }
+                listGroup.append(`<div class='PrefabListItem row w-100'>
+                <span class='col'>${prefablist[i].Name}</span>
+                <span class='col'>[${pos.x}, ${pos.y}, ${pos.z}]</span>
+                <span class='col'>(${rot.x}, ${rot.y}, ${rot.z})</span>
+                </div>`)
             }
             currentLoadedPrefabList = data.md5
             $("div#Builder #LoadPrefabListAuthor").html(header.player)
@@ -1236,6 +1251,38 @@ function findNearestPrefabById( e, id, selectDisplay ) {
     })
 }
 
+function spawnString( e, prefabString ) {
+    let player = $("input#PlayerConfigUserId").val()
+    $.ajax({
+        type:'post',
+        url:'/ajax',
+        data: { 'action': 'spawn_string', 'player': player, 'prefabString': prefabString },
+        dataType: 'json'
+    })
+    .done( (data) => {
+        if ( data.result == 'OK' )
+        {
+            console.log( data )
+            console.log( data.data.Result )
+            flash( e, "20, 255, 20" )
+            if ( !!data.data.Result )
+            {
+                selectedPrefabId = data.data.Result[0].Identifier
+                $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
+                let pname = selectedPrefabId +" - "+ data.data.Result[0].Name
+                $("#SelectedPrefabSelect").append(
+                    new Option( pname, selectedPrefabId, false, true )
+                )
+                $('#DestroySelectedPrefab').show()
+            }
+        } else {
+            $( e ).css('pointer-events', 'auto')
+            let color = "255, 20, 20"
+            flash( e, color )
+        }
+    })
+}
+
 function spawnPrefab( e, id, count, args, selectDisplay ) {
     let player = $("input#PlayerConfigUserId").val()
     $.ajax({
@@ -1293,12 +1340,19 @@ function scanNearbyPrefabs( elem, dest, diameter ) {
                 itemList.sort( function(a, b) { return ( a.Name.toUpperCase() > b.Name.toUpperCase() ) ? 1 : -1 } )
                 console.log( "iterating data.data.Result ")
                 console.log( itemList )
+                let placed = 0;
                 for( var i = 0; i < itemList.length; i++ ){
                     let item = itemList[i]
+                    let matches = item.Name.match(/^([a-zA-Z0-9_\ ]+)\(Clone\)/)
+                    console.log( matches )
+                    let name = matches[1]
+                    let nName = name.replace(/[ \(\)-]/g, "_")
+                    if ( ! builder_saveable_hashes.find( r => r.Name == nName ) ) continue;
                     if ( item.Name.includes("VR Player") ) continue;
                     if ( item.Name.includes("Key Standard") ) continue;
-                    
-                    $(dest).append("<div class='ScannedPrefab row w-100' id='"+ item.Identifier +"' name='"+ item.Name +"'><span class='col mr-auto'>"+ item.Name +"</span><a class='col-1 ml-auto trash_prefab' id='"+ item.Identifier +"'><i class='fas fa-window-close'/></a></div>")
+                    placed++;
+                    let evenodd = ( placed % 2 == 0 ) ? 'even' : 'odd'
+                    $(dest).append("<div class='ScannedPrefab row w-100 "+ evenodd+"' id='"+ item.Identifier +"' name='"+ item.Name +"'><span class='col mr-auto'>"+ item.Name +"</span><a class='col-1 ml-auto trash_prefab' id='"+ item.Identifier +"'><i class='fas fa-window-close'/></a></div>")
                 }
             }
         }

@@ -211,7 +211,6 @@ a {
     max-height: 400px;
     width: 100%;
     overflow-y: scroll;
-    background-color: rgba(230,230,230,0.90)
 }
 
 .list-group-item {
@@ -249,7 +248,15 @@ a {
 }
 
 .ScannedPrefab {
+  padding: 3px;
   border-bottom: var(--ui-shawdow-border);  
+
+}
+.odd {
+  background-color: whitesmoke;
+}
+.even {
+  background-color: rgba(230,230,230,0.90)
 }
 
 .PrefabListItem {

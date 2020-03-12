@@ -3,6 +3,8 @@ const fs = require('fs')
 const moment = require('moment')
 const clone = require('clone')
 const sha512 = require('crypto-js/sha512')
+const ieee754 = require('ieee754')
+const THREE = require('three')
 const dotenv = require('dotenv')
 dotenv.config()
 
@@ -29,6 +31,8 @@ const useSavedPassword = ( process.env.USE_SAVED_PASS === undefined )
 var att_connection = []
 var att_sessions = []
 var att_servers = []
+
+const builderKeyPrefabString = "39744,117,39744,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,1051372203,1454441398,32,3392848145,2290978823,418,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,3221225472,0,0,0,0,0,0,0,0"
 
 //Utility helper functions and prototypes
 function ts()
@@ -282,37 +286,56 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
         let response = {}
         let itemList = req.body.items
         let useExactCoordinates = ( req.body.exact == true ) ? true : false
-        console.log( itemList )
         let positionList = []
         getConnection(req).onMessage = ( message ) => {
             console.log( "command response message")
-            console.log( message )
-            if ( message.data.Command.FullName != 'select.' ) 
+            console.log( message, message.data.Result, message.data.BufferResultString )
+            if ( message.data.Command.FullName == 'select.tostring')
             {
-                item = message.data.Result
-                let matches = item.Name.match(/-\ ([a-zA-Z0-9_\ ]+)\(Clone\)/)
-                console.log( matches )
-                let name = matches[1]
-                console.log( name )
-                positionList.push({ 
-                    'Position' : item.Position,
-                    'Rotation' : item.Rotation,
-                    'Name': name
-                })
+                let resultString = (message.data.ResultString.split('|',1))[0]
+                let words = resultString.split(',')
+                let prefab = spawnableItemsList.find( item => item.Hash == words[0] )
+                
+                let item = {
+                    'string' : resultString,
+                    'hash' : words[0],
+                    'Name' : ( !!prefab ) ? prefab.Name : '',
+                    'Position' : new THREE.Vector3( 
+                        unpackfloat( words[3] ), // x
+                        unpackfloat( words[4] ), // y
+                        unpackfloat( words[5] )  // z
+                    ),
+                    'rotquaternion' : new THREE.Quaternion(
+                        unpackfloat( words[6] ), // x
+                        unpackfloat( words[7] ), // y
+                        unpackfloat( words[8] ), // z
+                        unpackfloat( words[9] ), // w
+                    ),
+                    'scale' : unpackfloat( words[10] )
+                }
+                item.roteuler = new THREE.Euler()
+                item.roteuler.setFromQuaternion( item.rotquaternion.normalize() )
+                item.Rotation = {
+                    x : rad2dec( item.roteuler.x ),
+                    y : rad2dec( item.roteuler.y ),
+                    z : rad2dec( item.roteuler.z )
+                }
+                console.log( "item tostring:", item )
+                positionList.push(item)                
             }
         }
+
+        console.log( itemList )
         console.log("getting positions")
         for ( let i = 0; i < itemList.length; i++ )
         {
-            // Gather the v3 coordinates for each item
             let item = itemList[i]
             let cmd = "select "+ item.id
-            console.log( "getting item "+ item.id +":"+ item.name )
             await getConnection(req).send(cmd)
-            await getConnection(req).send("select get")
+            await getConnection(req).send("select tostring")
         }
         // wait for positionList to fill
-        console.log( "done getting positions, write file" )
+        console.log( "waiting for positions" )
         let retries = 20;
         function waitForPositions() {
             if ( positionList.length > 0 
@@ -324,15 +347,15 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                 if ( !useExactCoordinates )
                 {
                     // Find the smallest values for x,y,z 
-                    min_x = positionList[0].Position[0];
-                    min_y = positionList[0].Position[1];
-                    min_z = positionList[0].Position[2];
+                    min_x = positionList[0].Position.x;
+                    min_y = positionList[0].Position.y;
+                    min_z = positionList[0].Position.z;
                     for ( let i = 0; i < positionList.length; i++ )
                     {
                         let item = positionList[i]
-                        min_x = ( item.Position[0] < min_x )? item.Position[0] : min_x
-                        min_y = ( item.Position[1] < min_y )? item.Position[1] : min_y
-                        min_z = ( item.Position[2] < min_z )? item.Position[2] : min_z
+                        if ( item.Position.x < min_x ) { min_x = item.Position.x }
+                        if ( item.Position.y < min_y ) { min_y = item.Position.y }
+                        if ( item.Position.z < min_z ) { min_z = item.Position.z }
                     }
 
                     // remove the minimum offsets to bring the item to root
@@ -342,9 +365,9 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                     for ( let i = 0; i < positionList.length; i++ )
                     {
                         let item = positionList[i]
-                        item.Position[0] = item.Position[0] - min_x
-                        item.Position[1] = item.Position[1] - min_y
-                        item.Position[2] = item.Position[2] - min_z
+                        item.Position.x = item.Position.x - min_x
+                        item.Position.y = item.Position.y - min_y
+                        item.Position.z = item.Position.z - min_z
                         positionList[i] = item;
                     }
                     console.log("offset positions:")
@@ -472,9 +495,9 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
         for( let i = 0; i < translatedPrefabs.length; i++ )
         {
             let item = translatedPrefabs[i]
-            item.Position[0] = parseFloat(item.Position[0]) + moffset[0]
-            item.Position[1] = parseFloat(item.Position[1]) + moffset[1]
-            item.Position[2] = parseFloat(item.Position[2]) + moffset[2]
+            item.Position.x = parseFloat(item.Position.x) + moffset[0]
+            item.Position.y = parseFloat(item.Position.y) + moffset[1]
+            item.Position.z = parseFloat(item.Position.z) + moffset[2]
             
             translatedPrefabs[i] = item
         }
@@ -517,9 +540,9 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                             for ( let i = 0; i < translatedPrefabs.length; i++ )
                             {
                                 let item = translatedPrefabs[i]
-                                item.Position[0] = Number( item.Position[0] + keyCoords.Position[0] ).toFixed(6)
-                                item.Position[1] = Number( item.Position[1] + keyCoords.Position[1] ).toFixed(6)
-                                item.Position[2] = Number( item.Position[2] + keyCoords.Position[2] ).toFixed(6)
+                                item.Position.x = Number( item.Position.x + keyCoords.Position[0] ).toFixed(6)
+                                item.Position.y = Number( item.Position.y + keyCoords.Position[1] ).toFixed(6)
+                                item.Position.z = Number( item.Position.z + keyCoords.Position[2] ).toFixed(6)
                                 
                                 translatedPrefabs[i] = item
                             }
@@ -574,16 +597,16 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                             let command = ''
                             switch( message.data.Command.FullName )
                             {
-                                case 'spawn.':
                                 case 'spawn.exact':
-                                    //command = "select move exact "+ item.Position.join(',')
-                                    command = "select rotate exact "+ item.Rotation.join(',')
+                                    // nothing more to do, should be at it's exact position
+                                    resolve()
                                 break
-
+                                case 'spawn.string':
+                                    command = `select move exact ${pos.x},${pos.y},${pos.z}`
+                                break
                                 case 'select move.exact':
-                                    command = "select rotate exact "+ item.Rotation.join(',')
+                                    command = `select rotate exact ${rot.x},${rot.y},${rot.z}`
                                 break
-
                                 case 'select rotate.exact':
                                     // Last step, resolve the promise
                                     resolve()
@@ -598,11 +621,15 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                     }
                     let itemCount = 1
                     console.log( item )
+                    //TODO: convert to spawn string-raw when working
+                    let command = `spawn string ${userId} ${item.string}`
+/*                    
                     let command = "spawn exact "
                             + pos[0].toString() +"," + pos[1].toString() +"," + pos[2].toString() +" "
                             + rot[0].toString() +"," + rot[1].toString() +"," + rot[2].toString() +" "
                             + item.Name.replace(/\s/g,'') +" "
                             + itemCount
+*/                            
                     //let command = 'spawn '+ userId +' '+ item.Name.replace(/\s/g,'')
                     conn.send( command )
 
@@ -645,7 +672,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
             if ( !!getConnection(req) )
             {
                 getConnection(req).onMessage = ( message ) => {
-                    console.log( message )
+                    console.log( message, message.data.Result )
                     let data = {}
                     if ( !!message.data )
                     {
@@ -761,6 +788,21 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                             command += " "+ req.body.count
                         if ( !!req.body.args )
                             command += " "+ req.body.args
+                        console.log( command )
+                        await getConnection(req).send( command )
+                    } else {
+                        res.send({'result':'Fail'})
+                    }
+                return;
+
+                case "spawn_string":
+                    if ( !!req.body.player && !!req.body.prefabString )
+                    {
+                        if ( prefabString == "builderkey" ) 
+                        {
+                            prefabString = builderKeyPrefabString
+                        }
+                        command = `spawn string ${req.body.player} ${prefabString}`
                         console.log( command )
                         await getConnection(req).send( command )
                     } else {
@@ -1020,4 +1062,17 @@ function saveCredData( creds )
             console.log( "New credentials.json saved" );
         }
     });   
+}
+
+function unpackfloat( value )
+{
+    let buffer = Buffer.from(new Uint8Array(4))
+    buffer.writeUInt32LE( value )
+    let unpackedFloat = ieee754.read( buffer, 0, true, 23, 4)
+    return unpackedFloat
+}
+
+function rad2dec( angle )
+{
+    return angle * ( 180 / Math.PI )
 }

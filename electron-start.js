@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, Menu, BrowserWindow } = require("electron");
 const dotenv = require('dotenv')
 dotenv.config()
 const port = process.env.PORT || 21129
@@ -10,7 +10,8 @@ let mainWindow;
 const createWindow = () => {
     mainWindow = new BrowserWindow({
         height: 920,
-        width: 540
+        width: 540,
+        title: "Prefabulator"
     });
     mainWindow.loadURL("http://localhost:"+ port);
     mainWindow.on("closed", () => {
@@ -18,6 +19,7 @@ const createWindow = () => {
     });
 };
 
+Menu.setApplicationMenu(null)
 app.on("ready", createWindow);
 app.on("activate", () => mainWindow === null && createWindow());
 app.on( "window-all-closed", () => {
