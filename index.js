@@ -572,29 +572,7 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                 spawnPrefabsFromList()
             })
         }
-            
-        /*
-        async function spawnPrefabsFromList() {
-            console.log(translatedPrefabs)
-            for ( let i = 0; i < translatedPrefabs.length; i++ )
-            {
-                let item = translatedPrefabs[i]
-                let pos = item.Position
-                let rot = item.Rotation
-                let itemCount = 1
-                console.log( item )
-                let command = "spawn exact "
-                        + pos[0].toString() +"," + pos[1].toString() +"," + pos[2].toString() +" "
-                        + rot[0].toString() +"," + rot[1].toString() +"," + rot[2].toString() +" "
-                        + item.Name.replace(/\s/g,'') +" "
-                        + itemCount
-                console.log( command )
-                await getConnection(req).send( command )
-            }
-        }
-        */
 
-        
         function spawnPrefabsFromList( ind ) {
             return new Promise( (resolve, reject) => {
                 if ( ind === undefined ) ind = 0
@@ -619,12 +597,12 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                                     resolve()
                                 break
                                 case 'spawn.string':
-                                    command = `select move exact ${pos.x},${pos.y},${pos.z}`
-                                break
-                                case 'select move.exact':
                                     command = `select rotate exact ${rot.x},${rot.y},${rot.z}`
                                 break
                                 case 'select rotate.exact':
+                                    command = `select move exact ${pos.x},${pos.y},${pos.z}`
+                                break
+                                case 'select move.exact':
                                     // Last step, resolve the promise
                                     resolve()
                                 break
