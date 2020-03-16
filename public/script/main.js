@@ -198,7 +198,7 @@ $(document).ready(() => {
             for ( let i = 0; i < currentPlayersList.length; i++ )
             {
                 let player = currentPlayersList[i]
-                let selected = ( selectedPlayerName == player.username )
+                let selected = ( selectedPlayerId == player.id )
                 $("#ConfigurePlayersSelect").append(
                     new Option( player.username, player.id, false, selected )
                 )
@@ -206,7 +206,7 @@ $(document).ready(() => {
             }
             if ( playerIsSelected )
             {
-                loadPlayerConfig( selectedPlayerName, "#ConfigurePlayersDialog" )
+                loadPlayerConfig( selectedPlayerId, "#ConfigurePlayersDialog" )
             }
             $(".topnav").toggleClass('active', false)
             $("#ConfigurePlayersNav").toggleClass("active")
@@ -231,7 +231,7 @@ $(document).ready(() => {
 
         let parent = selectedConfigForm
         $(parent +" #ConfigurePlayersPlayer").html( selectedPlayerName )      
-        loadPlayerConfig( selectedPlayerName, "#ConfigurePlayersDialog")
+        loadPlayerConfig( selectedPlayerId, "#ConfigurePlayersDialog")
 
         let playerListGroup = selectedConfigForm + " div.TeleportPlayers"
         $(playerListGroup +" a.list-group-item").removeClass("active")
@@ -266,7 +266,7 @@ $(document).ready(() => {
 
             if ( !!selectedPlayerName )
             {
-                loadPlayerConfig( selectedPlayerName, "#PlayerConfig")
+                loadPlayerConfig( selectedPlayerId, "#PlayerConfig")
             }
         })
 
@@ -1108,7 +1108,7 @@ $(document).ready(() => {
             let prefablist = data.data.prefabs
             let listGroup = $("div#Builder #LoadPrefabListItems")
             listGroup.empty()
-            function nfilter(x) { return Number.parseFloat(x).toFixed(2) }
+            function nfilter(x) { return Number.parseFloat(x).toFixed(3) }
             for( let i = 0; i < prefablist.length; i++ )
             {
                 let pos = {
@@ -1253,6 +1253,7 @@ function findNearestPrefabById( e, id, selectDisplay ) {
 
 function spawnString( e, prefabString ) {
     let player = $("input#PlayerConfigUserId").val()
+    console.log("spawning string for player: "+ player)
     $.ajax({
         type:'post',
         url:'/ajax',
@@ -1343,7 +1344,7 @@ function scanNearbyPrefabs( elem, dest, diameter ) {
                 let placed = 0;
                 for( var i = 0; i < itemList.length; i++ ){
                     let item = itemList[i]
-                    let matches = item.Name.match(/^([a-zA-Z0-9_\ ]+)\(Clone\)/)
+                    let matches = item.Name.match(/^([a-zA-Z0-9_\-\ ]+)\(Clone\)/)
                     console.log( matches )
                     let name = matches[1]
                     let nName = name.replace(/[ \(\)-]/g, "_")

@@ -32,8 +32,7 @@ var att_connection = []
 var att_sessions = []
 var att_servers = []
 
-const builderKeyPrefabString = "39744,117,39744,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,1051372203,1454441398,32,3392848145,2290978823,418,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,3221225472,0,0,0,0,0,0,0,0"
-
+const builderKeyPrefabString = "39744,117,39744,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,1051372203,1454441398,32,3392848145,2290978823,418,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,3221225472,0,0,0,0,0,0,0,0,"
 //Utility helper functions and prototypes
 function ts()
 { 
@@ -295,7 +294,7 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                 let resultString = (message.data.ResultString.split('|',1))[0]
                 let words = resultString.split(',')
                 let prefab = spawnableItemsList.find( item => item.Hash == words[0] )
-                
+
                 let item = {
                     'string' : resultString,
                     'hash' : words[0],
@@ -305,20 +304,38 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                         unpackfloat( words[4] ), // y
                         unpackfloat( words[5] )  // z
                     ),
-                    'rotquaternion' : new THREE.Quaternion(
-                        unpackfloat( words[6] ), // x
-                        unpackfloat( words[7] ), // y
-                        unpackfloat( words[8] ), // z
-                        unpackfloat( words[9] ), // w
-                    ),
                     'scale' : unpackfloat( words[10] )
                 }
-                item.roteuler = new THREE.Euler()
-                item.roteuler.setFromQuaternion( item.rotquaternion.normalize() )
+
+                let rotOrder = 'YXZ'
+                
+                let rotQuaternion = new THREE.Quaternion(
+                    unpackfloat( words[6] ), // x
+                    unpackfloat( words[7] ), // y
+                    unpackfloat( words[8] ), // z
+                    unpackfloat( words[9] ), // w
+                )
+                item.rotquaternion = {
+                    x : rotQuaternion.x,
+                    y : rotQuaternion.y,
+                    z : rotQuaternion.z,
+                    w : rotQuaternion.w
+                }
+
+                let rotEuler = new THREE.Euler()
+                rotEuler.setFromQuaternion( rotQuaternion, rotOrder )
+
+                item.roteuler = {
+                    x : rotEuler.x,
+                    y : rotEuler.y,
+                    z : rotEuler.z,
+                    order : rotEuler.order
+                }
+
                 item.Rotation = {
                     x : rad2dec( item.roteuler.x ),
                     y : rad2dec( item.roteuler.y ),
-                    z : rad2dec( item.roteuler.z )
+                    z : rad2dec( item.roteuler.z ),
                 }
                 console.log( "item tostring:", item )
                 positionList.push(item)                
@@ -584,10 +601,10 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                 if ( translatedPrefabs.length > 0 && ind < translatedPrefabs.length )
                 {
                     console.log("spawning prefab from list ["+ ind +"]")
-                    let item = translatedPrefabs[ind]
-                    console.log( item )
-                    let pos = item.Position
-                    let rot = item.Rotation
+                    let titem = translatedPrefabs[ind]
+                    console.log( titem )
+                    let pos = titem.Position
+                    let rot = titem.Rotation
     
                     conn.onMessage = ( message ) => {
                         console.log( "spawnPrefabsFromList message:")
@@ -620,9 +637,8 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                         }
                     }
                     let itemCount = 1
-                    console.log( item )
                     //TODO: convert to spawn string-raw when working
-                    let command = `spawn string ${userId} ${item.string}`
+                    let command = `spawn string ${userId} ${titem.string}`
 /*                    
                     let command = "spawn exact "
                             + pos[0].toString() +"," + pos[1].toString() +"," + pos[2].toString() +" "
@@ -666,6 +682,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
     let response = {}
     let command = undefined;
     let responseSent = false;
+    let userId = getATTSession(req).getUserId()
     if ( authenticated( req ) )
     {
         try {
@@ -732,7 +749,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 return;
 
                 case "look-at":
-                    command = "select look-at "+ getATTSession(req).getUsername()
+                    command = `select look-at ${userId}`
                     console.log( command )
                     if ( !!req.body.selectedPrefabId ) {
                         await getConnection(req).send( "select "+ req.body.selectedPrefabId )
@@ -755,7 +772,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     {
                         diameter = req.body.diameter    
                     }
-                    command = "select find "+ getATTSession(req).getUsername() +" "+ diameter 
+                    command = `select find ${userId} ${diameter}` 
                     console.log( command )
                     await getConnection(req).send( command )
                 return;
@@ -769,7 +786,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 // Expects a hash ID from 'spawn list' command
                 case "select_nearest":
                     console.log("select nearest")
-                    command = "select prefab "+ req.body.hash +" "+ getATTSession(req).getUsername()
+                    command = `select prefab ${req.body.hash} ${userId}`
                     console.log( command )
                     await getConnection(req).send( command )
                 return;
@@ -798,6 +815,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 case "spawn_string":
                     if ( !!req.body.player && !!req.body.prefabString )
                     {
+                        let prefabString = req.body.prefabString
                         if ( prefabString == "builderkey" ) 
                         {
                             prefabString = builderKeyPrefabString
@@ -855,7 +873,6 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 return;
 
                 case "get_player_config":
-                    let userId = ''
                     if ( !!req.body.player )
                     {
                         userId = req.body.player 
@@ -872,8 +889,8 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         : 'health'
                     let player = ( !!req.body.player )
                         ? req.body.player
-                        : getATTSession(req).getUsername()
-                    command = "player checkstat "+ player +" "+ stat
+                        : userId
+                    command = `player checkstat ${player} ${stat}`
                     console.log( command )
                     await getConnection(req).send( command )
                 return;
@@ -883,7 +900,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     {
                         let player = ( !!req.body.player )
                             ? req.body.player
-                            : getATTSession(req).getUsername()
+                            : userId
 
                         let statName = req.body.name
                         let statVal = req.body.value
@@ -892,7 +909,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                                 if ( statVal <= 0 ) statVal = 0.1
                             break
                         }
-                        command = "player setstat "+ player +" "+ statName +" "+ statVal
+                        command = `player setstat ${player} ${statName} ${statVal}`
                         console.log( command )
                         await getConnection(req).send( command )
                     } else {
@@ -903,7 +920,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 case "set_player_godmode":
                     let gmplayer = ( !!req.body.player )
                         ? req.body.player
-                        : getATTSession(req).getUsername()
+                        : userId
                     if ( req.body.value == "true" )
                     {
                         command = "player godmodeon "+ gmplayer
