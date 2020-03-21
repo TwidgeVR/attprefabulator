@@ -1048,6 +1048,9 @@ $(document).ready(() => {
     })
     
     $("div#Builder #SavePrefabListToFile").click( ( e ) => {
+        $(e.target).toggleClass("disabled", true)
+        let buttonLabel = $(e.target).html()
+        addSpinner( e )
         let itemList = []
         let exactCoords = $("div#Builder #SavePrefabListExactPositions").is(":checked")
         $("div#Builder #ScanNearbyPrefabsItems .ScannedPrefab").each( (ind, item) => {
@@ -1072,6 +1075,8 @@ $(document).ready(() => {
             } else {
                 flash( e.target, "255, 20, 20" )
             }
+            delSpinner( e , buttonLabel )
+            $(e.target).toggleClass("disabled", false)
         })
     })
 
@@ -1136,7 +1141,12 @@ $(document).ready(() => {
         })
     })
 
+
+
     $("div#Builder #LoadPrefabListSpawnItems").click( ( e ) => {
+        $(e.target).toggleClass('disabled', true)
+        let buttonLabel = $(e.target).html()
+        addSpinner( e )
         console.log( currentLoadedPrefabList )
         let moffset_x = Number($("div#Builder #LoadPrefabsOffsetX").val()).toFixed(6)
         let moffset_y = Number($("div#Builder #LoadPrefabsOffsetY").val()).toFixed(6)
@@ -1161,6 +1171,8 @@ $(document).ready(() => {
             {
                 flash( e.currentTarget, "20, 255, 20" )
             }
+            delSpinner( e, buttonLabel )
+            $(e.target).toggleClass('disabled', false)
         })
     })
 
@@ -1168,6 +1180,16 @@ $(document).ready(() => {
         $(e.currentTarget).parent().remove()
     })
 })
+
+function addSpinner( e )
+{
+    $(e.target).html('<i class="fa fa-spinner fa-spin" />')
+}
+
+function delSpinner( e, ihtml )
+{
+    $(e.target).html(ihtml)
+}
 
 function deletePrefab( id, selectDisplay ) {
     dataSet = { 'selectedPrefabId': id }
@@ -1346,7 +1368,7 @@ function scanNearbyPrefabs( elem, dest, diameter ) {
                     let item = itemList[i]
                     let matches = item.Name.match(/^([a-zA-Z0-9_\-\ ]+)\(Clone\)/)
                     console.log( matches )
-                    let name = matches[1]
+                    let name = (!!matches && !!matches[1])? matches[1] : "Unknown"
                     let nName = name.replace(/[ \(\)-]/g, "_")
                     if ( ! builder_saveable_hashes.find( r => r.Name == nName ) ) continue;
                     if ( item.Name.includes("VR Player") ) continue;
