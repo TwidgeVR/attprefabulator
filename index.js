@@ -673,15 +673,18 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     {
                         data = message.data
                     }
-                    let result = ( !!message.data.Exception ) ? 'Fail' : 'OK'
-                    response = {
-                        'result' : result,
-                        'data' : data
-                    }
-                    if ( !responseSent )
+                    if ( data.Command.FullName != 'select.' || req.body.action == "select_prefab" )
                     {
-                        responseSent = true;
-                        return res.send( response )
+                        let result = ( !!message.data.Exception ) ? 'Fail' : 'OK'
+                        response = {
+                            'result' : result,
+                            'data' : data
+                        }
+                        if ( !responseSent )
+                        {
+                            responseSent = true;
+                            return res.send( response )
+                        }
                     }
                 }
             } else {
@@ -775,6 +778,12 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     await getConnection(req).send( command )
                 return;
 
+                case "select_tostring":
+                    console.log( "select tostring" )
+                    command = "select tostring"
+                    await getConnection(req).send( command )
+                return;
+
                 case "post_prefab":
                     if ( !!req.body.player && !!req.body.hash )
                     {
@@ -828,7 +837,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     {
                         await getConnection(req).send("select "+ req.body.selectedPrefabId)
                     }
-                    await getConnection(req).send( command )
+                    await getConnection(req).send( command )                    
                 return;
 
                 case "get_server_config":

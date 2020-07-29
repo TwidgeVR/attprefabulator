@@ -136,8 +136,9 @@ $(document).ready(() => {
     $("#SearchSpawnItem").click( ( e ) => {
         let activeItem = $("#SelectNearestItems").find("button.active").attr('id')
         let args = $("#SearchSpawnArguments").val()
+        let scale = parseFloat($("#SpawnScale").val())
         if ( activeItem !== undefined )
-            spawnPrefab( e.currentTarget, activeItem, $("#SpawnCount").val(), args, $("#ClosestPrefab b"))
+            spawnPrefab( e.currentTarget, activeItem, $("#SpawnCount").val(), args, scale, $("#ClosestPrefab b"))
         else
             flash( e.currentTarget, "255, 20, 20")
     })
@@ -149,6 +150,22 @@ $(document).ready(() => {
         $("#selectedServer").val( $(self).attr('id') )
         $('.ServerListItem').toggleClass('active', false )
         $(self).toggleClass('active')
+    })
+
+    $("#SpawnScaleMinus").click(( e ) => {
+        let scalecount = parseFloat($("#SpawnScale").val()) - 0.25
+        console.log( "scale minus new value: "+ scalecount)
+        if ( scalecount <= 0 ) scalecount = 1
+        $("#SpawnScale").val( scalecount )
+        flash( e.target, "20, 255, 20")
+    })
+
+    $("#SpawnScalePlus").click(( e ) => {
+        let scalecount = parseFloat($("#SpawnScale").val()) + 0.25
+        console.log( "scale plus new value: "+ scalecount)        
+        if ( scalecount > 15 ) scalecount = 15
+        $("#SpawnScale").val( scalecount )
+        flash( e.target, "20, 255, 20")
     })
 
     $("#SpawnCountMinus").click(( e ) => {
@@ -1201,9 +1218,12 @@ function deletePrefab( id, selectDisplay ) {
         dataType: 'json'
     })
     .done( (data) => {
-        $("#SelectedPrefabSelect option:selected").remove()
-        let newSelected = $("#SelectedPrefabSelect option:first").val()
-        $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
+        if ( typeof(selectDisplay) !== undefined )
+        {
+            $("#SelectedPrefabSelect option:selected").remove()
+            let newSelected = $("#SelectedPrefabSelect option:first").val()
+            $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
+        }
     })
 }
 
@@ -1306,7 +1326,7 @@ function spawnString( e, prefabString ) {
     })
 }
 
-function spawnPrefab( e, id, count, args, selectDisplay ) {
+function spawnPrefab( e, id, count, args, scale, selectDisplay ) {
     let player = $("input#PlayerConfigUserId").val()
     $.ajax({
         type:'post',
@@ -1319,16 +1339,48 @@ function spawnPrefab( e, id, count, args, selectDisplay ) {
         {
             console.log( data )
             console.log( data.data.Result )
-            flash( e, "20, 255, 20" )
-            if ( !!data.data.Result )
+            console.log( scale )
+            if ( !!data.data.Result && scale != 1 )
             {
+                // Run a set of commands to replace the object with the scaled version
+                console.log( "gathering string" )
                 selectedPrefabId = data.data.Result[0].Identifier
-                $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
-                let pname = selectedPrefabId +" - "+ data.data.Result[0].Name
-                $("#SelectedPrefabSelect").append(
-                    new Option( pname, selectedPrefabId, false, true )
-                )
-                $('#DestroySelectedPrefab').show()
+                // Get the string version
+                $.ajax({
+                    type: 'post',
+                    url: '/ajax',
+                    data: {'action': 'select_tostring'}
+                }).done( data => {
+                    // Scale the string
+                    if ( !!data.data.ResultString )
+                    {
+                        console.log( "spawn string with scale" )
+                        var newString = rescaleString( data.data.ResultString, scale )
+                    }
+                    // Delete the original
+                    $.ajax({
+                        type: 'post',
+                        url: '/ajax',
+                        data: { 'action': 'destroy_prefab', 'selectedPrefabId': selectedPrefabId },
+                        dataType: 'json',
+                    }).done( data => {
+                        console.log( data )
+                        // Spawn the scaled version
+                        spawnString( e, newString )
+                    })
+                })
+            } else {
+                flash( e, "20, 255, 20" )
+                if ( !!data.data.Result )
+                {
+                    selectedPrefabId = data.data.Result[0].Identifier
+                    $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
+                    let pname = selectedPrefabId +" - "+ data.data.Result[0].Name
+                    $("#SelectedPrefabSelect").append(
+                        new Option( pname, selectedPrefabId, false, true )
+                    )
+                    $('#DestroySelectedPrefab').show()
+                }
             }
         } else {
             $( e ).css('pointer-events', 'auto')
@@ -1337,6 +1389,18 @@ function spawnPrefab( e, id, count, args, selectDisplay ) {
             updateServer( data )
         }
     })
+}
+
+function rescaleString( prefabString, scale ) {
+    let parts = prefabString.split('|')
+    let words = parts[0].split(',')
+    var view = new DataView( new ArrayBuffer(4) )
+    if ( scale > 15 ) scale = 15;
+    if ( scale <= 0 ) scale = 1;
+    view.setFloat32(0, scale)
+    words[10] = view.getUint32(0)
+    parts[0] = words.join(',')
+    return parts.join('|')
 }
 
 function scanNearbyPrefabs( elem, dest, diameter ) {
