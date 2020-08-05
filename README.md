@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.4.0 - Added scaling to prefab spawner.
+
 - v1.3.0 - Changed prefab saving tech to use strings which preserve materials and attachments on items loaded from json file.  Searchable servers, as well as only showing servers you can administer.  Fixed searching with the 'Find Prefabs' tool.  Player stats now show the current values. Finally, removed the default window menu.
 
 - v1.2.0 - Added the ability to scan nearby objects position/rotation, save it to a json file, and spawn teh collection from the file.  This can be used to either duplicate a group of prefabs (eg. a building), or to replace things that are lost during a wipe. These files can be shared to pass these resources between servers.  Some UI consolidation to make room for this interface.  Player stats now show the correct values, the server list is searchable, and spawn commands have a place to put optional arguments.
