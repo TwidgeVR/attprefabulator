@@ -6,24 +6,40 @@ var currentLoadedPrefabList = null;
 
 $(document).ready(() => {
 
-    $("#turnleft").click( ( e ) => controlClick( 'yaw', 'ccw', e.currentTarget ))
-    $("#up").click( ( e ) => controlClick( 'move', 'up', e.currentTarget ))
-    $("#turnright").click( ( e ) => controlClick( 'yaw', 'cw', e.currentTarget ))
+    function controlClickSetup( element, action, direction )
+    {
+        var cclickInterval = 100
+        var cclickTimeout    
+        $("#"+ element).on('mousedown', ( e ) => {
+            cclickTimeout = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
+            highlight( $("#"+element), "20, 255, 20" )
+        }).on('mouseup mouseleave', ()=>{
+            if ( !!cclickTimeout ) {
+                flash( $("#"+element), "20, 255, 20" )
+                clearTimeout( cclickTimeout )
+                cclickTimeout = undefined
+            }
+        })
+    }
 
-    $("#left").click( ( e ) => controlClick( 'move', 'left', e.currentTarget ))
-    $("#look-at").click( ( e ) => controlClick( 'look-at', null, e.currentTarget ))
-    $("#right").click( ( e ) => controlClick( 'move', 'right', e.currentTarget ))
+    controlClickSetup( 'turnleft', 'yaw', 'ccw' )
+    controlClickSetup( 'forward', 'move', 'forward' )
+    controlClickSetup( 'turnright', 'yaw', 'cw' )
 
-    $("#pitchup").click( ( e ) => controlClick( 'pitch', 'ccw', e.currentTarget ))
-    $("#down").click( ( e ) => controlClick( 'move', 'down', e.currentTarget ))
-    $("#pitchdown").click( ( e ) => controlClick( 'pitch', 'cw', e.currentTarget ))
+    controlClickSetup( 'left', 'move', 'left' )
+    $("#look-at").click( ( e ) => controlClick( 'look-at', null, "look-at", true ))
+    controlClickSetup( 'right', 'move', 'right' )
 
-    $("#forward").click( ( e ) => controlClick( 'move', 'forward', e.currentTarget ))
-    $("#back").click( ( e ) => controlClick( 'move', 'back', e.currentTarget ))
+    controlClickSetup( 'up', 'move', 'up' )
+    controlClickSetup( 'back', 'move', 'back' )
+    controlClickSetup( 'down', 'move', 'down' )
 
-    $("#spinccw").click( ( e ) => controlClick( 'roll', 'ccw', e.currentTarget ))
-    $("#snap-ground").click( ( e ) => controlClick( 'snap-ground', null, e.currentTarget ))
-    $("#spincw").click( ( e ) => controlClick( 'roll', 'cw', e.currentTarget ))
+    controlClickSetup( 'pitchup', 'pitch', 'ccw' )
+    controlClickSetup( 'pitchdown', 'pitch', 'cw' )
+
+    controlClickSetup( 'spinccw', 'roll', 'ccw' )
+    $("#snap-ground").click( ( e ) => controlClick( 'snap-ground', null, "snap-ground", true ))
+    controlClickSetup( 'spincw', 'roll', 'cw' )
 
     $("#ControlsNav").click( () => {
         $(".topnav").toggleClass("active", false)
@@ -77,15 +93,15 @@ $(document).ready(() => {
         $("#LoadPrefabsDialog").show()
     })
 
-    $("#RotateAngle1").click( () => setAngle( 1, $("#RotateAngle1") ))
-    $("#RotateAngle10").click( () => setAngle( 10, $("#RotateAngle10") ))
-    $("#RotateAngle45").click( () => setAngle( 45, $("#RotateAngle45") ))
-    $("#RotateAngle90").click( () => setAngle( 90, $("#RotateAngle90") ))    
+    $("#RotateAngle1").click( () => setAngle( 1, "RotateAngle1" ))
+    $("#RotateAngle10").click( () => setAngle( 10, "RotateAngle10" ))
+    $("#RotateAngle45").click( () => setAngle( 45, "RotateAngle45" ))
+    $("#RotateAngle90").click( () => setAngle( 90, "RotateAngle90" ))    
 
-    $("#Distance1cm").click( ( e ) => setDistance( 0.01, $("#Distance1cm") ))
-    $("#Distance10cm").click( ( e ) => setDistance( 0.1, $("#Distance10cm") ))
-    $("#Distance1m").click( ( e ) => setDistance( 1, $("#Distance1m") ))
-    $("#Distance10m").click( ( e ) => setDistance( 10, $("#Distance10m") ))
+    $("#Distance1cm").click( ( e ) => setDistance( 0.01, "Distance1cm" ))
+    $("#Distance10cm").click( ( e ) => setDistance( 0.1, "Distance10cm" ))
+    $("#Distance1m").click( ( e ) => setDistance( 1, "Distance1m" ))
+    $("#Distance10m").click( ( e ) => setDistance( 10, "Distance10m" ))
 
     $(".FindablePrefab").click( (e) => {
         $(".FindablePrefab").toggleClass("active", false)
@@ -155,7 +171,7 @@ $(document).ready(() => {
     $("#SpawnScaleMinus").click(( e ) => {
         let scalecount = parseFloat($("#SpawnScale").val()) - 0.25
         console.log( "scale minus new value: "+ scalecount)
-        if ( scalecount <= 0 ) scalecount = 1
+        if ( scalecount <= 0 ) scalecount = 0.01
         $("#SpawnScale").val( scalecount )
         flash( e.target, "20, 255, 20")
     })
@@ -163,7 +179,7 @@ $(document).ready(() => {
     $("#SpawnScalePlus").click(( e ) => {
         let scalecount = parseFloat($("#SpawnScale").val()) + 0.25
         console.log( "scale plus new value: "+ scalecount)        
-        if ( scalecount > 15 ) scalecount = 15
+        if ( scalecount > 10.23 ) scalecount = 10.23
         $("#SpawnScale").val( scalecount )
         flash( e.target, "20, 255, 20")
     })
@@ -1395,8 +1411,8 @@ function rescaleString( prefabString, scale ) {
     let parts = prefabString.split('|')
     let words = parts[0].split(',')
     var view = new DataView( new ArrayBuffer(4) )
-    if ( scale > 15 ) scale = 15;
-    if ( scale <= 0 ) scale = 1;
+    if ( scale > 10.23 ) scale = 10.23;
+    if ( scale <= 0 ) scale = 0.01;
     view.setFloat32(0, scale)
     words[10] = view.getUint32(0)
     parts[0] = words.join(',')
@@ -1480,29 +1496,29 @@ function selectFind( elem, dest, diameter ) {
     })
 }
 
-function setAngle( angle, e ){
-    $.ajax({ 
-        type:'post', 
-        url:'/ajax', 
-        data: {'action': 'set_angle', 'angle': angle },
-        dataType: 'text'
-    })
-    .done( (data) => {
+function setAngle( angle, element ){
+    wsAddHandler( 'set_angle', (message) => {
         $("a.rotateangle").toggleClass("active", false )
-        $(e).toggleClass("active") 
+        $('#'+message.data.element).toggleClass("active") 
+    })
+
+    wsSendJSON({
+        'action': 'set_angle',
+        'angle': angle,
+        'element' : element
     })
 }
 
-function setDistance( magnitude, e ){
-    $.ajax({ 
-        type:'post', 
-        url:'/ajax', 
-        data: {'action': 'set_distance', 'magnitude': magnitude },
-        dataType: 'text'
-    })
-    .done( (data) => {
+function setDistance( magnitude, element ){
+    wsAddHandler( 'set_distance', (message) => {
         $("a.distancemag").toggleClass("active", false )
-        $(e).toggleClass("active") 
+        $('#'+message.data.element).toggleClass("active") 
+    })
+
+    wsSendJSON({
+        'action': 'set_distance',
+        'magnitude': magnitude,
+        'element': element
     })
 }
 
@@ -1516,11 +1532,33 @@ function flash( elem, color ){
     $(elem).css({opacity:0})
     $(elem).animate({opacity: 1}, 700)
 }
+function highlight( elem, color ){
+    $(elem).css({background: "rgba("+color+")"})
+}
+function unhighlight( elem, color ){
+    flash( elem, color )
+}
 
 var rotations = [ 'yaw', 'roll', 'pitch' ]
 var standalones = [ 'look-at', 'snap-ground']
 
-function controlClick( action, direction, elem ){
+function controlClick( action, direction, elem, flash_on_click ){
+    buttonHandler = ( message ) => {
+        console.log( "handler: ", message )
+        if ( message.result == 'OK' )
+        {
+            if ( flash_on_click ) {
+                "flask OK: "+ message.data.element
+                flash( $("#"+message.data.element ), "20, 255, 20")
+            }
+        } else {
+            flash( $("#"+message.data.element ), "255, 20, 20")
+        }
+    }
+    wsAddHandler( 'rotate', buttonHandler )
+    wsAddHandler( 'move', buttonHandler )
+    wsAddHandler( 'look-at', buttonHandler )
+    wsAddHandler( 'snap-ground', buttonHandler )
     dataSet = {}
     console.log( "control click "+ selectedPrefabId +" "+ action +" "+ direction +" "+ elem )
     if (!!selectedPrefabId)
@@ -1538,22 +1576,8 @@ function controlClick( action, direction, elem ){
         dataSet.action = 'move'
         dataSet.direction = direction
     }
-    
-    $.ajax({
-        type: 'post',
-        url: '/ajax',
-        data: dataSet,
-        dataType: 'json'
-    })
-    .done( (data) => {
-        if ( data.result == 'OK' )
-        {
-            flash( $( elem ), "20, 255, 20")
-        } else {
-            flash( $( elem ), "255, 20, 20")
-        }
-        updateServer( data )
-    })
+    dataSet.element = elem
+    wsSendJSON( dataSet )
 }
 
 function updateServer( data )
@@ -1574,9 +1598,9 @@ async function loadPlayerConfig( userId, parentElem )
         'damage': 'Damage Stat',
         'poison': 'Poison Stat',
         'hunger': 'Hunger Stat',
+        'fullness': 'Fullness Stat',
         'damageprotection': 'Damage Protection Stat',
-        'recentlydamagedstat': 'RecentlyDamageStat',
-        'luminosity': 'Luminosity',
+        'recentlydamagedstat': 'Recently Damaged Stat',
         'cripple': 'Cripple Health Stat',
         'xpboost': 'ExperienceBoost',
         'nightmare': 'Nightmare'
@@ -1618,6 +1642,12 @@ async function loadPlayerConfig( userId, parentElem )
                         case 'speed':
                         case 'xpboost':
                             $(elem).attr('step', '0.5')
+                        break
+
+                        case 'fullness':
+                            $(elem).attr('step', '1')
+                            $(elem).attr('min', '0')
+                            $(elem).attr('max', '5')
                         break
 
                         case 'hunger':

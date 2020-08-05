@@ -16,16 +16,37 @@ const session = require('express-session')
 const bodyParser = require('body-parser')
 const fileUpload = require('express-fileupload')
 
+
 var Datastore = require('nedb')
 var spawnables = new Datastore({ filename: path.join(__dirname, 'data/spawnables.db'), autoload: true })
 var spawnableItemsList = []
 var loadedPrefabLists = {}
 
 const server = express()
-const port = process.env.PORT || 21129
+const port = Number(process.env.PORT) || 21129
 const useSavedPassword = ( process.env.USE_SAVED_PASS === undefined )
     ? true
     : ( process.env.USE_SAVED_PASS == 1 )
+
+// Websocket Service
+const ws = require('ws')
+const wssPort = port + 1
+const wss = new ws.Server({ port: wssPort })
+var wsHandlers = {}
+
+function wsAddHandler( name, handler )
+{
+    wsHandlers[name] = handler
+}
+function wsGetHandler( name )
+{
+    return ( !!wsHandlers[name] ) ? wsHandlers[name] : undefined
+}
+
+// Main connections (used by websocket handlers)
+var attSession;
+var attServer;
+var attConsole;
 
 // Connection is by sessionID
 var att_connection = []
@@ -51,7 +72,8 @@ function setConnection( req, serverName )
     // so remove the cache entry after loading
     delete require.cache[require.resolve('att-websockets')]
 
-    att_connection[ req.sessionID ] = new Connection( serverName )
+    attConsole = new Connection( serverName )
+    att_connection[ req.sessionID ] = attConsole
 
     att_connection[ req.sessionID ].onError = ( e ) => {
         console.log( e )
@@ -66,8 +88,11 @@ function setATTSession( req )
     // so remove the cache entry after loading
     delete require.cache[require.resolve('alta-jsapi')]
     
-    att_sessions[ req.sessionID ] = Sessions
-    att_servers[ req.sessionID ] = Servers
+    attSession = Sessions
+    attServer = Servers
+
+    att_sessions[ req.sessionID ] = attSession
+    att_servers[ req.sessionID ] = attServer
 }
 
 function getATTSession( req ) 
@@ -111,6 +136,35 @@ server.use( session({
         saveUninitialized: true
     }))
 
+// WebSocket connections
+wss.on('connection',  socket => {
+    socket.on('message', message => {
+        console.log("websocket message: "+ message )
+        if ( message == "ping" )
+        {
+            socket.send(JSON.stringify({ message : "pong", action: "test" }))
+        } else {
+            // Find and call a handler for the specified action type
+            if ( !!attConsole )
+            {
+                try {
+                    let data = JSON.parse( message )
+                    let handler = wsGetHandler( data.action )
+                    if ( !!handler ) 
+                    {
+                        handler( socket, data )
+                    } else {
+                        console.log( "Unknown WebSocket handler: "+ data.action )
+                    }
+                } catch ( e ) {
+                    socket.send( JSON.stringify({ error: e }))
+                }
+            } else {
+                socket.send( JSON.stringify({ result: 'Fail', error: 'No console connected' }))
+            }
+        }
+    })
+})
 
 server.get('/', ( req, res ) => {
     if ( authenticated( req ) )
@@ -245,6 +299,8 @@ server.post('/servers', asyncMid( async(req, res, next) =>{
 server.get('/control', asyncMid( async ( req, res, next ) => {
     if ( authenticated( req ))
     {
+        wsMap.rotateAngle = 10;
+        wsMap.distanceMag = 0.1;
         req.session.rotateAngle = 10;
         req.session.distanceMag = 0.1;
 
@@ -655,6 +711,65 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
     }
 }))
 
+var wsMap = {}
+wsAddHandler( 'set_angle', ( socket, data ) => {
+    wsMap.rotateAngle = data.angle
+    console.log( "New rotation angle: "+ wsMap.rotateAngle )
+    socket.send(JSON.stringify({ result: 'OK', data: data }))
+})
+wsAddHandler( 'set_distance', ( socket, data ) => {
+    wsMap.distanceMag = data.magnitude
+    console.log( "New distance magnitude: "+ wsMap.distanceMag )
+    socket.send(JSON.stringify({ result: "OK", data: data }))
+})
+
+wsAddHandler( 'move', async ( socket, data ) => {
+    let mdirection = data.direction;
+    command = "select move "+ mdirection +" "+ wsMap.distanceMag
+    console.log( command )
+    if ( !!data.selectedPrefabId ) {
+        console.log( "selecting prefab: "+ data.selectedPrefabId )
+        await attConsole.send( "select "+ data.selectedPrefabId )
+    }
+    await attConsole.send( command )
+    socket.send(JSON.stringify({ result: 'OK', data: data }))
+})
+
+wsAddHandler( 'rotate', async ( socket, data ) => {
+    let raxis = ( data.axis === undefined ) ? 'yaw' : data.axis;
+    let rotateAngle = ( data.direction == 'ccw') ? 360 + ( -1 * wsMap.rotateAngle ): wsMap.rotateAngle;
+    command = "select rotate "+ raxis +" "+ rotateAngle
+    console.log( command )
+    if ( !!data.selectedPrefabId ) {
+        await attConsole.send( "select "+ data.selectedPrefabId )
+    }
+    await attConsole.send( command )                
+    socket.send(JSON.stringify({ result: 'OK', data: data }))
+})
+
+wsAddHandler('look-at', async( socket, data ) => {
+    console.log( data )
+    let userId = attSession.getUserId()
+    command = `select look-at ${userId}`
+    console.log( command )
+    if ( !!data.selectedPrefabId ) {
+        await attConsole.send( "select "+ data.selectedPrefabId )
+    }
+    await attConsole.send( command )
+    socket.send(JSON.stringify({ result: 'OK', data: data }))
+})
+
+wsAddHandler('snap-ground', async( socket, data ) => {
+    command = `select snap-ground`
+    console.log( command )
+    if ( !!data.selectedPrefabId ) {
+        await attConsole.send( "select "+ data.selectedPrefabId )
+    }
+    await attConsole.send( command )
+    socket.send(JSON.stringify({ result: 'OK', data: data }))
+})
+
+// TODO: replace these with websocket handlers
 server.post('/ajax', asyncMid( async( req, res, next ) => {
     console.log( req.body )
     let response = {}
