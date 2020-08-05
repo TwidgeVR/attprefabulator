@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.5.0 - Added websocket listener to backend.  Changed all movement controls to use this interface.  Added click-hold interaction to all movement controls - no more click spam!
+
 - v1.4.0 - Added scaling to prefab spawner.
 
 - v1.3.0 - Changed prefab saving tech to use strings which preserve materials and attachments on items loaded from json file.  Searchable servers, as well as only showing servers you can administer.  Fixed searching with the 'Find Prefabs' tool.  Player stats now show the current values. Finally, removed the default window menu.
