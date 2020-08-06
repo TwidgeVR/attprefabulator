@@ -1,19 +1,11 @@
 div#CommandTerminal.Message.mx-2(class="hidden" style="position: relative;")
 
     div.ContentRow(class="row")
-        div#CommandTerminalLog.list-group.p-1(style="height: 400px;")
+        div#CommandTerminalLog.list-group.p-1(style="height: 450px;")
             div.list-group-item.odd
-                p Logger
-            div.list-group-item.even
-                p Second item
-            div.list-group-item.odd.ok
-                p Command returned: OK
-            div.list-group-item.even.fail
-                p Command returned: FAIL
+                p Event Logs
     div.ContentRow(class="row")
             div.ControlsMini(class="d-flex w-100" style="flex-direction:row")
                 i(class="fas fa-hashtag")
-                input#CommandTerminalInput.form-control.mx-1(type="text" placeholder="player kill joel")
-                button.form-control.ml-auto.action(style="flex:1;") Send
-    div.text-center.align-middle.w-100(style="position:absolute; height:100%; top: 0px; left: 0px; background: rgba( 200, 200, 200, .7 );")
-        p Coming Soon
+                input#CommandTerminalInput.form-control.mx-1(type="text" placeholder="player kill joel" autocomplete="new-password")
+                button#CommandTerminalSubmit.form-control.ml-auto.action(style="flex:1;") Send

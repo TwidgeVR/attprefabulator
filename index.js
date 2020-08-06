@@ -32,26 +32,29 @@ const useSavedPassword = ( process.env.USE_SAVED_PASS === undefined )
 const ws = require('ws')
 const wssPort = port + 1
 const wss = new ws.Server({ port: wssPort })
+var wsSocket;
 var wsHandlers = {}
 
 function wsAddHandler( name, handler )
 {
     wsHandlers[name] = handler
+
 }
 function wsGetHandler( name )
 {
     return ( !!wsHandlers[name] ) ? wsHandlers[name] : undefined
+}
+function wsSendJSON( data )
+{
+    if ( !!wsSocket )
+        wsSocket.send( JSON.stringify( data ) )
 }
 
 // Main connections (used by websocket handlers)
 var attSession;
 var attServer;
 var attConsole;
-
-// Connection is by sessionID
-var att_connection = []
-var att_sessions = []
-var att_servers = []
+var attSubscriptions;
 
 const builderKeyPrefabString = "39744,117,39744,3292217970,1130291577,3265257749,1032887442,3211394956,1065353216,3184467828,1051372203,1454441398,32,3392848145,2290978823,418,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,3221225472,0,0,0,0,0,0,0,0,"
 //Utility helper functions and prototypes
@@ -60,12 +63,7 @@ function ts()
     return "["+ moment().format() +"]"
 }
 
-function getConnection( req )
-{
-    return ( !!att_connection[req.sessionID] ) ? att_connection[req.sessionID] : undefined
-}
-
-function setConnection( req, serverName )
+function setConnection( serverName )
 {
     var { Connection } = require('att-websockets')
     // requires are cached which prevents instantiation
@@ -73,44 +71,43 @@ function setConnection( req, serverName )
     delete require.cache[require.resolve('att-websockets')]
 
     attConsole = new Connection( serverName )
-    att_connection[ req.sessionID ] = attConsole
-
-    att_connection[ req.sessionID ].onError = ( e ) => {
+    attConsole.onError = ( e ) => {
         console.log( e )
         throw( e )
     }
 }
 
-function setATTSession( req )
+function setSubscrptionsConnection( serverName )
+{
+    var { Connection } = require('att-websockets')
+    delete require.cache[require.resolve('att-websockets')]
+
+    attSubscriptions = new Connection( serverName )
+    attSubscriptions.onError = ( e ) => {
+        console.log( e )
+        throw( e )
+    }
+    attSubscriptions.onMessage = ( message ) => {
+        if ( !!wsSocket )
+        {
+            wsSendJSON( message )
+        }
+    }
+}
+
+function setATTSession( )
 {
     var { Sessions, Servers } = require('alta-jsapi')
-    // requires are cached which prevents instantiation
-    // so remove the cache entry after loading
-    delete require.cache[require.resolve('alta-jsapi')]
-    
     attSession = Sessions
     attServer = Servers
-
-    att_sessions[ req.sessionID ] = attSession
-    att_servers[ req.sessionID ] = attServer
-}
-
-function getATTSession( req ) 
-{
-    return ( !!att_sessions[req.sessionID]) ? att_sessions[req.sessionID] : undefined
-}
-
-function getATTServers( req )
-{
-    return ( !!att_servers[req.sessionID]) ? att_servers[req.sessionID] : undefined
 }
 
 function authenticated( req )
 {
     return  ( req.session !== undefined )
             && !!req.session.userAuthenticated
-            && ( getATTSession(req) !== undefined )
-            && getATTSession(req).getUserId()
+            && ( attSession !== undefined )
+            && attSession.getUserId()
 }
 
 // This middleware handles passing errors in async functions back to express
@@ -138,11 +135,12 @@ server.use( session({
 
 // WebSocket connections
 wss.on('connection',  socket => {
+    wsSocket = socket
     socket.on('message', message => {
         console.log("websocket message: "+ message )
         if ( message == "ping" )
         {
-            socket.send(JSON.stringify({ message : "pong", action: "test" }))
+            wsSendJSON( { message : "pong", action: "test" } )
         } else {
             // Find and call a handler for the specified action type
             if ( !!attConsole )
@@ -152,15 +150,15 @@ wss.on('connection',  socket => {
                     let handler = wsGetHandler( data.action )
                     if ( !!handler ) 
                     {
-                        handler( socket, data )
+                        handler( data )
                     } else {
                         console.log( "Unknown WebSocket handler: "+ data.action )
                     }
                 } catch ( e ) {
-                    socket.send( JSON.stringify({ error: e }))
+                    wsSendJSON({ error: e })
                 }
             } else {
-                socket.send( JSON.stringify({ result: 'Fail', error: 'No console connected' }))
+                wsSendJSON({ result: 'Fail', error: 'No console connected' })
             }
         }
     })
@@ -234,7 +232,7 @@ server.post('/login', asyncMid( async(req, res, next) => {
     if ( resp.authenticated == true )
     {
         req.session.userAuthenticated = true
-        req.session.alta_username = getATTSession(req).getUsername();
+        req.session.alta_username = attSession.getUsername();
         res.redirect('/')
         return
     }
@@ -244,8 +242,7 @@ server.post('/login', asyncMid( async(req, res, next) => {
 server.get('/servers', asyncMid( async (req, res, next) => {
     if( authenticated( req ) )
     {
-        var servers = await getATTServers(req).getConsoleServers()
-        //var servers = await getATTServers(req).getOnline()
+        var servers = await attServer.getConsoleServers()
         console.log( servers )
         if ( !!servers )
         {
@@ -266,18 +263,20 @@ server.get('/servers', asyncMid( async (req, res, next) => {
 server.post('/servers', asyncMid( async(req, res, next) =>{
     if ( authenticated(req) )
     {
-        var servers = await getATTServers(req).getOnline()
+        var servers = await attServer.getOnline()
         var serverId = req.body.selectedServer;
         var selectedServer = servers.find( item => item.id.toString() == serverId )
         console.log( req.body )
         console.log( selectedServer )
         try {
-            var details = await getATTServers(req).joinConsole( serverId )
+            var details = await attServer.joinConsole( serverId )
             if ( details.allowed )
             {
                 console.log("Connected to server: "+ selectedServer.name )
-                setConnection( req, selectedServer.name )
-                await getConnection(req).connect( details.connection.address, details.connection.websocket_port, details.token )
+                setConnection( selectedServer.name )
+                setSubscrptionsConnection( selectedServer.Name )
+                await attConsole.connect( details.connection.address, details.connection.websocket_port, details.token )
+                await attSubscriptions.connect( details.connection.address, details.connection.websocket_port, details.token )
                 res.redirect('/control?serverName='+ selectedServer.name )
                 return
             } else {
@@ -304,23 +303,17 @@ server.get('/control', asyncMid( async ( req, res, next ) => {
         req.session.rotateAngle = 10;
         req.session.distanceMag = 0.1;
 
-        let userId = getATTSession(req).getUserId()
-        let userName = getATTSession(req).getUsername()
+        let userId = attSession.getUserId()
+        let userName = attSession.getUsername()
         let sname = "Not connected";
         if ( !!req.query.serverName ) {
             sname = req.query.serverName
         }
         
         try {
-            /*
-            spawnables.find({}).sort({name: 1}).exec( (err, docs) => {
-                res.render("control", { serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: docs })
-            })
-            */
             loadSpawnableItems(req)
                 .then(() => {
                     console.log( "rendering control" )
-                    console.log( spawnableItemsList )
                     res.render("control", { version: version, serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList })
                     return
                 })
@@ -342,7 +335,7 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
         let itemList = req.body.items
         let useExactCoordinates = ( req.body.exact == true ) ? true : false
         let positionList = []
-        getConnection(req).onMessage = ( message ) => {
+        attConsole.onMessage = ( message ) => {
             console.log( "command response message")
             console.log( message, message.data.Result, message.data.BufferResultString )
             if ( message.data.Command.FullName == 'select.tostring')
@@ -404,8 +397,8 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
         {
             let item = itemList[i]
             let cmd = "select "+ item.id
-            await getConnection(req).send(cmd)
-            await getConnection(req).send("select tostring")
+            await attConsole.send(cmd)
+            await attConsole.send("select tostring")
         }
         // wait for positionList to fill
         console.log( "waiting for positions" )
@@ -453,7 +446,7 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                 let filename = ts + ".json"
                 let jsonDataset = { 
                     'header' : {
-                        'player': getATTSession(req).getUsername(),
+                        'player': attSession.getUsername(),
                         'timestamp': ts,
                         'exact': useExactCoordinates
                     },
@@ -531,7 +524,7 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
     {
         let prefabList = loadedPrefabLists[ req.body.md5sum ]
         let useExactCoordinates = ( prefabList.header.exact )
-        let userId = getATTSession(req).getUserId()      
+        let userId = attSession.getUserId()      
         let moffset = [ 
             parseFloat(req.body.moffset_x), 
             parseFloat(req.body.moffset_y),
@@ -558,7 +551,7 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
             Position : [ 0, 0, 0 ],
             Rotation : [ 0, 0, 0 ]
         }
-        let conn = getConnection(req)
+        let conn = attConsole
 
         // Apply the offset to the supplied coordinates
         console.log("original prefabs list")
@@ -711,19 +704,34 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
     }
 }))
 
-var wsMap = {}
-wsAddHandler( 'set_angle', ( socket, data ) => {
-    wsMap.rotateAngle = data.angle
-    console.log( "New rotation angle: "+ wsMap.rotateAngle )
-    socket.send(JSON.stringify({ result: 'OK', data: data }))
-})
-wsAddHandler( 'set_distance', ( socket, data ) => {
-    wsMap.distanceMag = data.magnitude
-    console.log( "New distance magnitude: "+ wsMap.distanceMag )
-    socket.send(JSON.stringify({ result: "OK", data: data }))
+// attSubscription websocket controls
+wsAddHandler( 'subscribe', async ( data ) => {
+    await attSubscriptions.send("websocket subscribe InfoLog")
+    await attSubscriptions.send("websocket subscribe PlayerJoined")
+    await attSubscriptions.send("websocket subscribe PlayerLeft")
 })
 
-wsAddHandler( 'move', async ( socket, data ) => {
+// attConsole websocket controls
+var wsMap = {}
+wsAddHandler( 'send_command', async ( data ) => {
+    // Send an arbitrary command to the server
+    console.log( "Sending command: ", data.command )
+    // Send through the subscriptions channel so it can be logged properly
+    await attSubscriptions.send( data.command )
+})
+
+wsAddHandler( 'set_angle', ( data ) => {
+    wsMap.rotateAngle = data.angle
+    console.log( "New rotation angle: "+ wsMap.rotateAngle )
+    wsSendJSON({ result: 'OK', data: data })
+})
+wsAddHandler( 'set_distance', ( data ) => {
+    wsMap.distanceMag = data.magnitude
+    console.log( "New distance magnitude: "+ wsMap.distanceMag )
+    wsSendJSON({ result: "OK", data: data })
+})
+
+wsAddHandler( 'move', async ( data ) => {
     let mdirection = data.direction;
     command = "select move "+ mdirection +" "+ wsMap.distanceMag
     console.log( command )
@@ -732,10 +740,10 @@ wsAddHandler( 'move', async ( socket, data ) => {
         await attConsole.send( "select "+ data.selectedPrefabId )
     }
     await attConsole.send( command )
-    socket.send(JSON.stringify({ result: 'OK', data: data }))
+    wsSendJSON({ result: 'OK', data: data })
 })
 
-wsAddHandler( 'rotate', async ( socket, data ) => {
+wsAddHandler( 'rotate', async ( data ) => {
     let raxis = ( data.axis === undefined ) ? 'yaw' : data.axis;
     let rotateAngle = ( data.direction == 'ccw') ? 360 + ( -1 * wsMap.rotateAngle ): wsMap.rotateAngle;
     command = "select rotate "+ raxis +" "+ rotateAngle
@@ -744,10 +752,10 @@ wsAddHandler( 'rotate', async ( socket, data ) => {
         await attConsole.send( "select "+ data.selectedPrefabId )
     }
     await attConsole.send( command )                
-    socket.send(JSON.stringify({ result: 'OK', data: data }))
+    wsSendJSON({ result: 'OK', data: data })
 })
 
-wsAddHandler('look-at', async( socket, data ) => {
+wsAddHandler('look-at', async( data ) => {
     console.log( data )
     let userId = attSession.getUserId()
     command = `select look-at ${userId}`
@@ -756,17 +764,17 @@ wsAddHandler('look-at', async( socket, data ) => {
         await attConsole.send( "select "+ data.selectedPrefabId )
     }
     await attConsole.send( command )
-    socket.send(JSON.stringify({ result: 'OK', data: data }))
+    wsSendJSON({ result: 'OK', data: data })
 })
 
-wsAddHandler('snap-ground', async( socket, data ) => {
+wsAddHandler('snap-ground', async( data ) => {
     command = `select snap-ground`
     console.log( command )
     if ( !!data.selectedPrefabId ) {
         await attConsole.send( "select "+ data.selectedPrefabId )
     }
     await attConsole.send( command )
-    socket.send(JSON.stringify({ result: 'OK', data: data }))
+    wsSendJSON({ result: 'OK', data: data })
 })
 
 // TODO: replace these with websocket handlers
@@ -775,20 +783,22 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
     let response = {}
     let command = undefined;
     let responseSent = false;
-    let userId = getATTSession(req).getUserId()
+    let userId = attSession.getUserId()
     if ( authenticated( req ) )
     {
         try {
-            if ( !!getConnection(req) )
+            if ( !!attConsole )
             {
-                getConnection(req).onMessage = ( message ) => {
+                attConsole.onMessage = ( message ) => {
                     console.log( message, message.data.Result )
                     let data = {}
                     if ( !!message.data )
                     {
                         data = message.data
                     }
-                    if ( data.Command.FullName != 'select.' || req.body.action == "select_prefab" )
+                    if ( !!data.Command && 
+                            ( data.Command.FullName != 'select.' || req.body.action == "select_prefab" )
+                       )
                     {
                         let result = ( !!message.data.Exception ) ? 'Fail' : 'OK'
                         response = {
@@ -828,9 +838,9 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     console.log( command )
                     if ( !!req.body.selectedPrefabId ) {
                         console.log( "selecting prefab: "+ req.body.selectedPrefabId )
-                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                        await attConsole.send( "select "+ req.body.selectedPrefabId )
                     }
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "rotate":
@@ -839,27 +849,27 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     command = "select rotate "+ raxis +" "+ rotateAngle
                     console.log( command )
                     if ( !!req.body.selectedPrefabId ) {
-                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                        await attConsole.send( "select "+ req.body.selectedPrefabId )
                     }
-                    await getConnection(req).send( command )                
+                    await attConsole.send( command )                
                 return;
 
                 case "look-at":
                     command = `select look-at ${userId}`
                     console.log( command )
                     if ( !!req.body.selectedPrefabId ) {
-                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                        await attConsole.send( "select "+ req.body.selectedPrefabId )
                     }
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "snap-ground":
                     command = "select snap-ground"
                     console.log( command )
                     if ( !!req.body.selectedPrefabId ) {
-                        await getConnection(req).send( "select "+ req.body.selectedPrefabId )
+                        await attConsole.send( "select "+ req.body.selectedPrefabId )
                     }
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "select_find":
@@ -870,13 +880,13 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     }
                     command = `select find ${userId} ${diameter}` 
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "select_prefab":
                     command = "select "+ req.body.prefabId 
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 // Expects a hash ID from 'spawn list' command
@@ -884,19 +894,19 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     console.log("select nearest")
                     command = `select prefab ${req.body.hash} ${userId}`
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "select_get":
                     console.log( "select get" )
                     command = "select get"
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "select_tostring":
                     console.log( "select tostring" )
                     command = "select tostring"
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "post_prefab":
@@ -908,7 +918,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         if ( !!req.body.args )
                             command += " "+ req.body.args
                         console.log( command )
-                        await getConnection(req).send( command )
+                        await attConsole.send( command )
                     } else {
                         res.send({'result':'Fail'})
                     }
@@ -924,7 +934,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         }
                         command = `spawn string ${req.body.player} ${prefabString}`
                         console.log( command )
-                        await getConnection(req).send( command )
+                        await attConsole.send( command )
                     } else {
                         res.send({'result':'Fail'})
                     }
@@ -940,7 +950,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                             command += " "+ req.body.args
 
                         console.log( command )
-                        await getConnection(req).send( command )
+                        await attConsole.send( command )
                     } else {
                         res.send({'result':'Fail'})
                     }
@@ -950,15 +960,15 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     command = "select destroy"
                     if( !!req.body.selectedPrefabId ) 
                     {
-                        await getConnection(req).send("select "+ req.body.selectedPrefabId)
+                        await attConsole.send("select "+ req.body.selectedPrefabId)
                     }
-                    await getConnection(req).send( command )                    
+                    await attConsole.send( command )                    
                 return;
 
                 case "get_server_config":
                     command = "settings list server"
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "set_server_config":
@@ -968,7 +978,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     {
                         command = "settings changeSetting server "+ parameter +" "+ value
                         console.log( command )
-                        await getConnection(req).send( command )
+                        await attConsole.send( command )
                     } else {
                         res.send({'result':'Fail'})
                     }
@@ -981,7 +991,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     }
                     command = "player list-stat "+ userId
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "get_player_stat":
@@ -994,7 +1004,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         : userId
                     command = `player checkstat ${player} ${stat}`
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "set_player_stat":
@@ -1013,7 +1023,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         }
                         command = `player setstat ${player} ${statName} ${statVal}`
                         console.log( command )
-                        await getConnection(req).send( command )
+                        await attConsole.send( command )
                     } else {
                         res.send({'result': 'Fail'})
                     }
@@ -1030,13 +1040,13 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         command = "player godmodeoff "+ gmplayer
                     }
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return
 
                 case "get_player_list":
                     command = "player list"
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return
 
                 case "teleport_players":
@@ -1044,7 +1054,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     let destination = req.body.destination
                     command = "player teleport "+ players +" "+ destination
                     console.log( command )
-                    await getConnection(req).send( command )
+                    await attConsole.send( command )
                 return;
 
                 case "send_message":
@@ -1055,7 +1065,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         let duration = req.body.duration
                         command = 'player message '+ players +' "'+ message +'" '+ duration
                         console.log( command )
-                        await getConnection(req).send( command )
+                        await attConsole.send( command )
                     } else {
                         res.send({'result':'Fail'})
                     }
@@ -1066,7 +1076,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     {
                         command = "player kill "+ req.body.player
                         console.log( command )
-                        await getConnection(req).send( command )
+                        await attConsole.send( command )
                     } else {
                         res.send({'result': 'Fail'})
                     }
@@ -1077,7 +1087,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                         {
                             command = "player kick "+ req.body.player
                             console.log( command )
-                            await getConnection(req).send( command )
+                            await attConsole.send( command )
                         } else {
                             res.send({'result': 'Fail'})
                         }
@@ -1113,11 +1123,11 @@ async function attLogin( username, hashPassword, req )
 {
     console.log( "Connecting to ATT" )
     let resp = {}
-    setATTSession( req )
-    await getATTSession(req).loginWithUsername( username, hashPassword )
+    setATTSession()
+    await attSession.loginWithUsername( username, hashPassword )
         .then(() => {
-            if ( getATTSession(req).getUserId() ) {
-                console.log( "Connected as "+ getATTSession(req).getUsername() )
+            if ( attSession.getUserId() ) {
+                console.log( "Connected as "+ attSession.getUsername() )
                 resp.authenticated = true;        
             }
         })
@@ -1133,7 +1143,7 @@ async function attLogin( username, hashPassword, req )
 async function loadSpawnableItems( req )
 {
     return new Promise( ( resolve, reject ) => {
-        let conn = getConnection( req )
+        let conn = attConsole
         if ( !!conn ) 
         {
             conn.onMessage = (data) => {
@@ -1152,6 +1162,7 @@ async function loadSpawnableItems( req )
             }
             console.log( "loadSpawnableItems getting spawnables list" )
             conn.send( "spawn list" )  
+            //conn.send("spawn infodump")
         }
     })
 }

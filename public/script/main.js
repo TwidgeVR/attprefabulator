@@ -203,6 +203,7 @@ $(document).ready(() => {
         $(".Message").hide()
         $("#SelectedPrefabHistory").hide()
         $("#CommandTerminal").show()
+        wsSendJSON({'action':"subscribe"})
     })
 
     $("#ConfigurePlayersNav").click(( e ) =>{
@@ -1212,6 +1213,151 @@ $(document).ready(() => {
     $("div#Builder #ScanNearbyPrefabsItems").on('click', 'a.trash_prefab', ( e ) => {
         $(e.currentTarget).parent().remove()
     })
+
+    var ctInput = $("#CommandTerminalInput")
+    var ctHistory = {
+        currentKey : 0,
+        history : [],
+        put : ( val ) => {
+            ctHistory.history.push( val )
+            ctHistory.currentKey = ctHistory.history.length
+        },
+        getPrev : () => {
+            ctHistory.currentKey--
+            if ( ctHistory.currentKey < 0 ) 
+                ctHistory.currentKey = 0
+            if ( !!ctHistory.history[ctHistory.currentKey] )
+            {
+                return ctHistory.history[ctHistory.currentKey]
+            } else {
+                return undefined
+            }
+        },
+        getNext : () => {
+            ctHistory.currentKey++
+            if ( !!ctHistory.history[ctHistory.currentKey])
+            {
+                return ctHistory.history[ctHistory.currentKey]
+            } else {
+                return undefined
+            }
+        }
+    }
+
+    // Console Interface
+    $("#CommandTerminalSubmit").click( (e) => {
+        let command = $("#CommandTerminalInput").val()
+        if ( !!command ) 
+        {
+            ctHistory.put( command )
+            ctInput.val("")
+            // Send the command
+            wsSendJSON({ 
+                'action': 'send_command',
+                'command': command
+            })
+        }
+    })
+
+    $("#CommandTerminalInput").on("keydown", ( e ) => {
+        console.log( "CommandTerminalInput: keyDown event: ", e)
+        console.log( ctHistory.currentKey, ctHistory.history )
+        switch( e.key )
+        {
+            case "Enter":
+                console.log("Enter was pressed within CommandTerminalInput")
+                $("#CommandTerminalSubmit").click()
+            break;
+
+            case "Up":
+            case "ArrowUp":
+                console.log( "ArrowUp" )
+                let prevVal = ctHistory.getPrev()
+                if ( !!prevVal )
+                    ctInput.val( prevVal )
+            break;
+
+            case "Down":
+            case "ArrowDown":
+                let nextVal = ctHistory.getNext()
+                if ( !!nextVal )
+                {
+                    ctInput.val(nextVal)
+                } else {
+                    ctInput.val('')
+                }
+            break;
+        }
+    })
+
+    // Add some default websockets handlers
+    var CommandTerminalLogParity = true
+    var ctLog = $("#CommandTerminalLog")
+    wsAddHandler( 'Subscription', ( message ) => {
+        console.log( message )
+        let parity = ( CommandTerminalLogParity ) ? "even" : "odd"
+        CommandTerminalLogParity = !CommandTerminalLogParity
+        let timestamp = (new Date(message.timeStamp)).toLocaleTimeString('en-US')
+        let logMessage = `[${timestamp}] ${message.eventType} | `
+        switch( message.eventType )
+        {
+            case "InfoLog":
+                logMessage += message.data.message
+            break
+            case "PlayerJoined":
+                logMessage += "Player joined: "+ message.data.user.username
+            break
+            case "PlayerLeft":
+                logMessage += "Player left: "+ message.data.user.username
+            break;
+        }
+        // Check scroll position
+        console.log( ctLog[0].scrollHeight, ctLog[0].scrollTop, ctLog[0].clientHeight )
+        let scrolled = ctLog[0].scrollHeight - ctLog[0].scrollTop === ctLog[0].clientHeight
+        console.log( "scrolled? ", scrolled )
+        ctLog.append(
+            `<div class='list-group-item ${parity}'><p>${logMessage}</p></div>`
+        )
+        if ( scrolled )
+        {
+            ctLog.stop().animate({
+                scrollTop: ctLog[0].scrollHeight
+            }, 800 )
+        }
+    })
+
+    wsAddHandler( 'CommandResult', ( message ) => {
+        console.log( message )
+        let parity = ( CommandTerminalLogParity ) ? "even" : "odd"
+        CommandTerminalLogParity = !CommandTerminalLogParity
+        let timestamp = (new Date(message.timeStamp)).toLocaleTimeString('en-US')
+        let resultClass = ''
+
+        let logMessage = `[${timestamp}] ${message.type} | `
+        if ( !!message.data.Exception )
+        {
+            resultClass = 'fail'
+            logMessage += message.data.Exception.Message
+        } else {
+            resultClass = 'ok'
+            let command = message.data.Command.FullName
+
+            logMessage += `${command}: `
+            if ( !!message.data.Result)
+            {
+                logMessage += "<pre>"+ JSON.stringify( message.data.Result, null, 4 ) +"</pre>"
+            } else {
+                logMessage += message.data.ResultString
+            }
+        }
+        ctLog.append(
+            `<div class='list-group-item ${parity} ${resultClass}'><p>${logMessage}</p></div>`
+        )
+        ctLog.stop().animate({
+            scrollTop: ctLog[0].scrollHeight - ctLog[0].clientHeight
+        }, 800 )
+    })
+
 })
 
 function addSpinner( e )

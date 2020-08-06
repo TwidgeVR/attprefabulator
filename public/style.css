@@ -208,7 +208,7 @@ a {
 }
 
 .list-group {
-    max-height: 400px;
+    max-height: 450px;
     width: 100%;
     overflow-y: scroll;
 }
@@ -217,6 +217,9 @@ a {
     width: 100%;
 }
 
+#CommandTerminalLog {
+  font-size: 0.8em;
+}
 #CommandTerminalLog .list-group-item {
     padding: 3px;
     margin: 0;
@@ -306,4 +309,8 @@ a.SetServerConfig {
 
 #CommandTerminalLog {
   box-shadow: var(--ui-shawdow);
+}
+
+#CommandTerminalInput::placeholder {
+  color: rgba(161, 161, 161, 0.55)
 }
