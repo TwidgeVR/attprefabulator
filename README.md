@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.5.2 - Added subscription selections to the console so you can control which events you watch
+
 - v1.5.1 - Finally added the command console, which has been "coming soon" for far too long.
 
 - v1.5.0 - Added websocket listener to backend.  Changed all movement controls to use this interface.  Added click-hold interaction to all movement controls - no more click spam!

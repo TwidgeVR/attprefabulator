@@ -1,9 +1,16 @@
 div#CommandTerminal.Message.mx-2(class="hidden" style="position: relative;")
+    div.ContentRow.row
+        div#CTSubsDropdown.dropdown.show.d-flex.w-100.m-0
+            a.ControlsMini.d-flex.w-100.m-0.dropdown-toggle.text-center(href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false") Log Subscriptions
+            div.dropdown-menu.w-50.mt-0(aria-labelledby="dropdownMenuLink")
+                each subscription in subscriptions
+                    if ( subscribed[ subscription.name ])
+                        div.dropdown-item.active(name=subscription.name) #{subscription.name}
+                    else
+                        div.dropdown-item(name=subscription.name) #{subscription.name}
 
     div.ContentRow(class="row")
         div#CommandTerminalLog.list-group.p-1(style="height: 450px;")
-            div.list-group-item.odd
-                p Event Logs
     div.ContentRow(class="row")
             div.ControlsMini(class="d-flex w-100" style="flex-direction:row")
                 i(class="fas fa-hashtag")

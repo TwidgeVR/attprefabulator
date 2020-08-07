@@ -1290,6 +1290,19 @@ $(document).ready(() => {
         }
     })
 
+    $("#CTSubsDropdown .dropdown-item").on('click', ( e ) => {
+        let subscriptionName = $(e.currentTarget).attr('name')
+        console.log("Dropdown event: ", subscriptionName)
+        if ( $(e.currentTarget).hasClass("active") )
+        {
+            $(e.currentTarget).removeClass('active')
+            wsSendJSON({'action':'unsubscribe', 'subscription': subscriptionName })
+        } else {
+            $(e.currentTarget).addClass('active')
+            wsSendJSON({'action':'subscribe', 'subscription': subscriptionName })
+        }
+    })
+
     // Add some default websockets handlers
     var CommandTerminalLogParity = true
     var ctLog = $("#CommandTerminalLog")
@@ -1309,6 +1322,14 @@ $(document).ready(() => {
             break
             case "PlayerLeft":
                 logMessage += "Player left: "+ message.data.user.username
+            break;
+            case "PlayerStateChanged":
+                let enterexit = ( message.data.isEnter ) ? "entered" : "left"
+                logMessage += `${message.data.user.username} ${enterexit} state ${message.data.state}`
+            break;
+            default:
+                if ( !!message.data )
+                    logMessage += '<pre>'+ JSON.stringify( message.data, null, 4 ) +'</pre>'
             break;
         }
         // Check scroll position
@@ -1343,11 +1364,21 @@ $(document).ready(() => {
             let command = message.data.Command.FullName
 
             logMessage += `${command}: `
-            if ( !!message.data.Result)
+            switch( command )
             {
-                logMessage += "<pre>"+ JSON.stringify( message.data.Result, null, 4 ) +"</pre>"
-            } else {
-                logMessage += message.data.ResultString
+                case "help.":
+                case "select.tostring":
+                    logMessage += `<pre>${message.data.ResultString}</pre>`
+                break;
+
+                default:
+                    if ( !!message.data.Result)
+                    {
+                        logMessage += "<pre>"+ JSON.stringify( message.data.Result, null, 4 ) +"</pre>"
+                    } else {
+                        logMessage += message.data.ResultString
+                    }
+                break;
             }
         }
         ctLog.append(
@@ -1357,7 +1388,6 @@ $(document).ready(() => {
             scrollTop: ctLog[0].scrollHeight - ctLog[0].clientHeight
         }, 800 )
     })
-
 })
 
 function addSpinner( e )

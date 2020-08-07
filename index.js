@@ -21,6 +21,8 @@ var Datastore = require('nedb')
 var spawnables = new Datastore({ filename: path.join(__dirname, 'data/spawnables.db'), autoload: true })
 var spawnableItemsList = []
 var loadedPrefabLists = {}
+var subscriptionList = []
+var subscribedSubscriptions = {}
 
 const server = express()
 const port = Number(process.env.PORT) || 21129
@@ -311,12 +313,12 @@ server.get('/control', asyncMid( async ( req, res, next ) => {
         }
         
         try {
-            loadSpawnableItems(req)
-                .then(() => {
-                    console.log( "rendering control" )
-                    res.render("control", { version: version, serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList })
-                    return
-                })
+            await loadSpawnableItems(req)
+            await loadSubscriptions(req)
+            //console.log( subscriptionList )
+            console.log( "rendering control" )
+            res.render("control", { version: version, serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList, subscriptions: subscriptionList, subscribed: subscribedSubscriptions })
+            return
         } catch ( e ) {
             console.log( e )
             res.redirect('/login?error=Server error')
@@ -706,14 +708,42 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
 
 // attSubscription websocket controls
 wsAddHandler( 'subscribe', async ( data ) => {
-    await attSubscriptions.send("websocket subscribe InfoLog")
-    await attSubscriptions.send("websocket subscribe PlayerJoined")
-    await attSubscriptions.send("websocket subscribe PlayerLeft")
+    attSubscriptions.onMessage = ( message ) => {
+        if ( !!wsSocket )
+        {
+            wsSendJSON( message )
+        }
+    }
+    if ( !!data.subscription && !subscribedSubscriptions[ data.subscription ] == true )
+    {
+        subscribedSubscriptions[ data.subscription ] = true
+        await attSubscriptions.send("websocket subscribe "+ data.subscription )
+    }
+})
+
+wsAddHandler( 'unsubscribe', async ( data ) => {
+    attSubscriptions.onMessage = ( message ) => {
+        if ( !!wsSocket )
+        {
+            wsSendJSON( message )
+        }
+    }
+    if ( !!data.subscription && subscribedSubscriptions[ data.subscription ] == true )
+    {
+        subscribedSubscriptions[ data.subscription ] = false
+        await attSubscriptions.send("websocket unsubscribe "+ data.subscription )
+    }
 })
 
 // attConsole websocket controls
 var wsMap = {}
 wsAddHandler( 'send_command', async ( data ) => {
+    attSubscriptions.onMessage = ( message ) => {
+        if ( !!wsSocket )
+        {
+            wsSendJSON( message )
+        }
+    }
     // Send an arbitrary command to the server
     console.log( "Sending command: ", data.command )
     // Send through the subscriptions channel so it can be logged properly
@@ -1163,6 +1193,27 @@ async function loadSpawnableItems( req )
             console.log( "loadSpawnableItems getting spawnables list" )
             conn.send( "spawn list" )  
             //conn.send("spawn infodump")
+        }
+    })
+}
+
+async function loadSubscriptions( req )
+{
+    return new Promise( (resolve, reject) => {
+        let conn = attSubscriptions
+        if ( !!conn )
+        {
+            conn.onMessage = (data) => {
+                if ( !!data.data.Result && data.data.Result.length > 0 )
+                {
+                    subscriptionList = data.data.Result
+                    return resolve()
+                } else {
+                    return reject()
+                }
+            }
+            console.log( "loadSubscriptions getting subscription targets")
+            conn.send("websocket subscriptions")
         }
     })
 }
