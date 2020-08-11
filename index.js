@@ -55,8 +55,10 @@ function wsSendJSON( data )
 // Main connections (used by websocket handlers)
 var attSession;
 var attServer;
+// The websocket connections to server
 var attConsole;
 var attSubscriptions;
+var attSaveLoad;
 
 const builderKeyPrefabString = "39744,117,39744,3292217970,1130291577,3265257749,1032887442,3211394956,1065353216,3184467828,1051372203,1454441398,32,3392848145,2290978823,418,3292217970,1130291577,3265257749,1032887442,3211394956,1053152122,3184467828,3221225472,0,0,0,0,0,0,0,0,"
 //Utility helper functions and prototypes
@@ -90,6 +92,24 @@ function setSubscrptionsConnection( serverName )
         throw( e )
     }
     attSubscriptions.onMessage = ( message ) => {
+        if ( !!wsSocket )
+        {
+            wsSendJSON( message )
+        }
+    }
+}
+
+function setSaveLoadConnection( serverName )
+{
+    var { Connection } = require('att-websockets')
+    delete require.cache[require.resolve('att-websockets')]
+
+    attSaveLoad = new Connection( serverName )
+    attSaveLoad.onError = ( e ) => {
+        console.log( e )
+        throw( e )
+    }
+    attSaveLoad.onMessage = ( message ) => {
         if ( !!wsSocket )
         {
             wsSendJSON( message )
@@ -274,11 +294,14 @@ server.post('/servers', asyncMid( async(req, res, next) =>{
             var details = await attServer.joinConsole( serverId )
             if ( details.allowed )
             {
-                console.log("Connected to server: "+ selectedServer.name )
+                console.log( "Connecting to server: "+ selectedServer.name )
                 setConnection( selectedServer.name )
                 setSubscrptionsConnection( selectedServer.Name )
+                setSaveLoadConnection( selectedServer.name )
                 await attConsole.connect( details.connection.address, details.connection.websocket_port, details.token )
                 await attSubscriptions.connect( details.connection.address, details.connection.websocket_port, details.token )
+                await attSaveLoad.connect( details.connection.address, details.connection.websocket_port, details.token )
+                console.log("Connected to server: "+ selectedServer.name )
                 res.redirect('/control?serverName='+ selectedServer.name )
                 return
             } else {
@@ -334,22 +357,23 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
     {
         console.log( req.body )
         let response = {}
+        let itemNames = {}
         let itemList = req.body.items
-        let useExactCoordinates = ( req.body.exact == true ) ? true : false
+        let useExactCoordinates = true
         let positionList = []
         attConsole.onMessage = ( message ) => {
-            console.log( "command response message")
-            console.log( message, message.data.Result, message.data.BufferResultString )
+            //console.log( "save_prefabs command response message")
+            //console.log( message, message.data.Result, message.data.BufferResultString )
             if ( message.data.Command.FullName == 'select.tostring')
             {
                 let resultString = (message.data.ResultString.split('|',1))[0]
                 let words = resultString.split(',')
-                let prefab = spawnableItemsList.find( item => item.Hash == words[0] )
+                let prefab = itemNames[words[0]]
 
                 let item = {
                     'string' : resultString,
                     'hash' : words[0],
-                    'Name' : ( !!prefab ) ? prefab.Name : '',
+                    'Name' : prefab,
                     'Position' : new THREE.Vector3( 
                         unpackfloat( words[3] ), // x
                         unpackfloat( words[4] ), // y
@@ -388,7 +412,7 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                     y : rad2dec( item.roteuler.y ),
                     z : rad2dec( item.roteuler.z ),
                 }
-                console.log( "item tostring:", item )
+                //console.log( "item tostring:", item )
                 positionList.push(item)                
             }
         }
@@ -398,6 +422,8 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
         for ( let i = 0; i < itemList.length; i++ )
         {
             let item = itemList[i]
+            itemNames[ item.hash ] = item.name 
+
             let cmd = "select "+ item.id
             await attConsole.send(cmd)
             await attConsole.send("select tostring")
@@ -412,38 +438,9 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                 console.log( "final positions: ")
                 console.log( positionList )
 
-                if ( !useExactCoordinates )
-                {
-                    // Find the smallest values for x,y,z 
-                    min_x = positionList[0].Position.x;
-                    min_y = positionList[0].Position.y;
-                    min_z = positionList[0].Position.z;
-                    for ( let i = 0; i < positionList.length; i++ )
-                    {
-                        let item = positionList[i]
-                        if ( item.Position.x < min_x ) { min_x = item.Position.x }
-                        if ( item.Position.y < min_y ) { min_y = item.Position.y }
-                        if ( item.Position.z < min_z ) { min_z = item.Position.z }
-                    }
-
-                    // remove the minimum offsets to bring the item to root
-                    console.log( "min_x: "+ min_x )
-                    console.log( "min_y: "+ min_y )
-                    console.log( "min_z: "+ min_z )
-                    for ( let i = 0; i < positionList.length; i++ )
-                    {
-                        let item = positionList[i]
-                        item.Position.x = item.Position.x - min_x
-                        item.Position.y = item.Position.y - min_y
-                        item.Position.z = item.Position.z - min_z
-                        positionList[i] = item;
-                    }
-                    console.log("offset positions:")
-                    console.log( positionList )
-                }
 
                 // Write it out to the file
-                let ts = moment().valueOf()
+                let ts = moment().format("YYYYMMDD_kkmmss_SSSS")
                 let fprefix = req.sessionID + "_"
                 let filename = ts + ".json"
                 let jsonDataset = { 
@@ -524,8 +521,9 @@ server.post('/load_prefabs_input', asyncMid( async( req, res, next ) => {
 server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
     if ( authenticated( req ) )
     {
+        console.log( req.body )
         let prefabList = loadedPrefabLists[ req.body.md5sum ]
-        let useExactCoordinates = ( prefabList.header.exact )
+        let useExactCoordinates = parseBool( req.body.useExactCoords )
         let userId = attSession.getUserId()      
         let moffset = [ 
             parseFloat(req.body.moffset_x), 
@@ -556,10 +554,41 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
         let conn = attConsole
 
         // Apply the offset to the supplied coordinates
-        console.log("original prefabs list")
-        console.log( prefabList.prefabs)
-        console.log("slice copy")
-        console.log( translatedPrefabs )
+        //console.log("original prefabs list")
+        //console.log( prefabList.prefabs)
+        //console.log("slice copy")
+        //console.log( translatedPrefabs )
+        console.log( "useExactCoordinates: ", useExactCoordinates )
+        if ( !useExactCoordinates )
+        {
+            // Find the smallest values for x,y,z 
+            min_x = translatedPrefabs[0].Position.x;
+            min_y = translatedPrefabs[0].Position.y;
+            min_z = translatedPrefabs[0].Position.z;
+            for ( let i = 0; i < translatedPrefabs.length; i++ )
+            {
+                let item = translatedPrefabs[i]
+                if ( item.Position.x < min_x ) { min_x = item.Position.x }
+                if ( item.Position.y < min_y ) { min_y = item.Position.y }
+                if ( item.Position.z < min_z ) { min_z = item.Position.z }
+            }
+
+            // remove the minimum offsets to bring the item to root
+            console.log( "min_x: "+ min_x )
+            console.log( "min_y: "+ min_y )
+            console.log( "min_z: "+ min_z )
+            for ( let i = 0; i < translatedPrefabs.length; i++ )
+            {
+                let item = translatedPrefabs[i]
+                item.Position.x = item.Position.x - min_x
+                item.Position.y = item.Position.y - min_y
+                item.Position.z = item.Position.z - min_z
+                translatedPrefabs[i] = item;
+            }
+            console.log("offset positions:")
+            console.log( translatedPrefabs )
+        }
+
         for( let i = 0; i < translatedPrefabs.length; i++ )
         {
             let item = translatedPrefabs[i]
@@ -569,11 +598,10 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
             
             translatedPrefabs[i] = item
         }
-        console.log("original")
-        console.log( prefabList.prefabs )
-        console.log("slice copy with predefined offsets")
-        console.log( translatedPrefabs )
-
+        //console.log("original")
+        //console.log( prefabList.prefabs )
+        //console.log("slice copy with predefined offsets")
+        //console.log( translatedPrefabs )
 
         if ( useExactCoordinates )
         {
@@ -629,15 +657,15 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                 if ( ind === undefined ) ind = 0
                 if ( translatedPrefabs.length > 0 && ind < translatedPrefabs.length )
                 {
-                    console.log("spawning prefab from list ["+ ind +"]")
+                    //console.log("spawning prefab from list ["+ ind +"]")
                     let titem = translatedPrefabs[ind]
-                    console.log( titem )
+                    //console.log( titem )
                     let pos = titem.Position
                     let rot = titem.Rotation
     
                     conn.onMessage = ( message ) => {
-                        console.log( "spawnPrefabsFromList message:")
-                        console.log( message )
+                        //console.log( "spawnPrefabsFromList message:")
+                        //console.log( message )
                         if ( !!message.data.Command )
                         {
                             let command = ''
@@ -735,7 +763,7 @@ wsAddHandler( 'unsubscribe', async ( data ) => {
     }
 })
 
-// attConsole websocket controls
+// Subscription socket controls
 var wsMap = {}
 wsAddHandler( 'send_command', async ( data ) => {
     attSubscriptions.onMessage = ( message ) => {
@@ -750,6 +778,7 @@ wsAddHandler( 'send_command', async ( data ) => {
     await attSubscriptions.send( data.command )
 })
 
+// attConsole websocket controls
 wsAddHandler( 'set_angle', ( data ) => {
     wsMap.rotateAngle = data.angle
     console.log( "New rotation angle: "+ wsMap.rotateAngle )
@@ -806,6 +835,80 @@ wsAddHandler('snap-ground', async( data ) => {
     await attConsole.send( command )
     wsSendJSON({ result: 'OK', data: data })
 })
+
+// SaveLoad websocket controls
+wsAddHandler('select_find_save', async( data ) => {
+    let scanDiameter = 10
+    if ( !!data.diameter ) { scanDiameter = data.diameter }
+    let userId = attSession.getUserId()
+    let prefabCount = 0
+    let prefabsScanned = 0
+    data.scanitems = []
+
+    // These items should never be scanned
+    let blacklistItems = {
+        '0' : 'Respawn Point',
+        '37940' : 'Discovery Landmark',
+        '49582': 'VR Player Character New'
+    }
+
+    attSaveLoad.onMessage = ( message ) => {
+        // Message handlers for the save system
+        //console.log( "select_find_save.onmessage: ", message )
+
+        if ( !!message.data.Exception )
+        {
+            data.message = message
+            wsSendJSON({ result: 'Fail', data: data})
+        }
+
+        if ( !!message.data.Command.FullName )
+        {
+            if ( !message.data.Result )
+            {
+                data.message = message
+                wsSendJSON({ result:"Fail", data: data })
+            } else {
+                switch( message.data.Command.FullName )
+                {
+                    case "select.find":
+                        // For each result item, run select get <id>
+                        console.log( "Found prefabs: ", message.data.Result )
+                        prefabCount = message.data.Result.length;
+                        for ( let i = 0; i < prefabCount; i++ )
+                        {
+                            attSaveLoad.send(`select get ${message.data.Result[i].Identifier}`)
+                        }
+                    break;
+
+                    case "select.get":
+                        // For each item, add to save array if ChunkingParent == 0
+                        prefabsScanned++
+                        if ( message.data.Result.ChunkingParent == 0 )
+                        {
+                            if ( !blacklistItems[ message.data.Result.PrefabHash ])
+                            {
+                                console.log( "select.get saveable item: ", message.data.Result )
+                                data.scanitems.push( message.data.Result )
+                            }
+                        }
+                        if ( prefabsScanned == prefabCount )
+                        {
+                            console.log( "sending result: ", data )
+                            wsSendJSON({ result: 'OK', data: data })
+                        }
+                    break;
+                }
+            }
+        }
+    }
+
+    console.log( "select find save")
+    await attSaveLoad.send( `select find ${userId} ${scanDiameter}` )
+
+})
+
+
 
 // TODO: replace these with websocket handlers
 server.post('/ajax', asyncMid( async( req, res, next ) => {
@@ -1256,4 +1359,9 @@ function unpackfloat( value )
 function rad2dec( angle )
 {
     return angle * ( 180 / Math.PI )
+}
+
+function parseBool(val)
+{
+    return val === true || val === "true"
 }

@@ -57,7 +57,7 @@ webSocket.addEventListener('message', (event) => {
         
     } catch( e ) {
         console.log( "Error processing websocket message: "+ e.message )
-        console.log( event )
+        //console.log( event )
     }
 })
 

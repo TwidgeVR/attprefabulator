@@ -11,12 +11,6 @@ div#Builder.Message(class="container hidden").mt-0.pt-0
                 input#SavePrefabListScanDiameter.form-control.p-1.m-0(type="text" value="30")
 
         div.ContentRow.row
-            div.col-auto.mr-auto
-                p Save exact world coordinates:
-            div.col-2.ml-auto
-                input#SavePrefabListExactPositions(type="checkbox")
-
-        div.ContentRow.row
             a#BuilderScanNearbyPrefabs.col.ControlsMini.p-2.text-center Scan Nearby Prefabs
 
         div.ContentRow.row
@@ -26,22 +20,27 @@ div#Builder.Message(class="container hidden").mt-0.pt-0
             a#SavePrefabListToFile.col.ControlsMini.px-2.text-center Save List to File...
 
     div#LoadPrefabsDialog.SubMessage.Controls.w-100.py-2.hidden
+        div.ContentRow.row
+            div.col-auto.mr-auto
+                p Spawn at exact world coordinates:
+            div.col-2.ml-auto
+                input#SpawnBuilderExactPositions(type="checkbox" checked)
 
-        div.ContentRow.row.text-left.w-100
+        div#LoadPrefabBuildersKey.ContentRow.row.hidden.text-left.w-100
             span.col Place the Builder's Key where items should spawn
             a#SpawnBuilderTokenItem.col.ControlsMini.p-2.text-center Spawn a Builder's Key
 
         div.ContentRow.row.pt-3
             form#LoadPrefabListFromFileForm(method="POST" enctype="multipart/form-data" action="/load_prefabs_input")
-                input#LoadPrefabListFromFileInput.hidden(name="prefablist" type="file")
+                input#LoadPrefabListFromFileInput.hidden(name="prefablist" type="file" accept=".json")
         div.ContentRow.row
             a#LoadPrefabListFromFile.col.ControlsMini.p-2.text-center Load from File...
         
         div#LoadPrefabListDetails.ContentRow.pt-3.hidden
-            div.row
+            div.row.small
                 i.fas.fa-file-code.p-1.pr-3
                 span#LoadPrefabListFilename.font-italic
-            div.row.w-100
+            div.row.w-100.small
                 i.fas.fa-user.p-1.pr-3
                 span Author:&nbsp;
                 span#LoadPrefabListAuthor
@@ -49,11 +48,11 @@ div#Builder.Message(class="container hidden").mt-0.pt-0
             div.row.shadowbox.my-2
                 div#LoadPrefabListItems.list-group.w-100.pl-3(style="max-height: 260px;")
 
-            div#LoadPrefabListExactCoords.text-center.row.hidden
+            div#LoadPrefabListExactCoords.text-center.row.small.hidden
                 i.fas.fa-exclamation-circle
-                span.px-2 This file uses exact world coordinates
+                span.px-2 This file does not contain exact coordinates
                 
-            div.ContentRow.row.py-2
+            div.ContentRow.row.py-2.small
                 div.col-auto.mr-auto.pt-2
                     p Manual position offset:
                 div.col.d-flex

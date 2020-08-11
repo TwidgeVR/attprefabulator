@@ -1086,17 +1086,13 @@ $(document).ready(() => {
         let buttonLabel = $(e.target).html()
         addSpinner( e )
         let itemList = []
-        let exactCoords = $("div#Builder #SavePrefabListExactPositions").is(":checked")
         $("div#Builder #ScanNearbyPrefabsItems .ScannedPrefab").each( (ind, item) => {
-            console.log( ind )
-            console.log( item )
-            console.log( "send this list of items to the server to gather coords then return a JSON file download with the contents")
-            itemList.push( { 'id': $(item).attr('id'), 'name': $(item).attr('name') } )
+            itemList.push( { 'id': $(item).attr('id'), 'name': $(item).attr('name'), 'hash': $(item).data('hash') } )
         })
         $.ajax({
             type:'post',
             url:'/save_prefabs',
-            data: JSON.stringify( { 'exact': exactCoords, 'items' : itemList } ),
+            data: JSON.stringify( { 'items' : itemList } ),
             contentType: "application/json",
             dataType: 'json'
         })
@@ -1117,6 +1113,15 @@ $(document).ready(() => {
     $("div#Builder #SpawnBuilderTokenItem").click( ( e ) => {
         //spawnPrefab( e.currentTarget, "KeyStandard", 1 )    
         spawnString( e.currentTarget, "builderkey" )
+    })
+
+    $("#SpawnBuilderExactPositions").on('change', ( e ) => {
+        if ( $(e.currentTarget).is(":checked") )
+        {
+            $("div#LoadPrefabBuildersKey").hide()
+        } else {
+            $("div#LoadPrefabBuildersKey").show()
+        }
     })
 
     $("div#Builder #LoadPrefabListFromFile").click( ( e ) => {
@@ -1161,15 +1166,22 @@ $(document).ready(() => {
                     z : nfilter( prefablist[i].Rotation.z ),
                 }
                 listGroup.append(`<div class='PrefabListItem row w-100'>
-                <span class='col'>${prefablist[i].Name}</span>
-                <span class='col'>[${pos.x}, ${pos.y}, ${pos.z}]</span>
-                <span class='col'>(${rot.x}, ${rot.y}, ${rot.z})</span>
+                <div class='col-5' style='font-size:0.8em'>${prefablist[i].Name}</div>
+                <div class='col' style='font-size:0.7em'>
+                Pos [${pos.x}, ${pos.y}, ${pos.z}]<br>
+                Rot (${rot.x}, ${rot.y}, ${rot.z})
+                </div>
                 </div>`)
             }
             currentLoadedPrefabList = data.md5
             $("div#Builder #LoadPrefabListAuthor").html(header.player)
             $("div#Builder #LoadPrefabListFilename").html(data.filename)
-            if ( header.exact ) $("div#Builder #LoadPrefabListExactCoords").show()
+            if ( !header.exact ) {
+                $("#SpawnBuilderExactPositions").prop('checked', false)
+                $("#LoadPrefabBuildersKey").show()
+                $("div#Builder #LoadPrefabListExactCoords").show()
+            }
+            
             $("div#Builder #LoadPrefabListDetails").show()
             console.log( currentLoadedPrefabList )
         })
@@ -1181,6 +1193,7 @@ $(document).ready(() => {
         $(e.target).toggleClass('disabled', true)
         let buttonLabel = $(e.target).html()
         addSpinner( e )
+        let exactCoords = $("div#Builder #SpawnBuilderExactPositions").is(":checked")
         console.log( currentLoadedPrefabList )
         let moffset_x = Number($("div#Builder #LoadPrefabsOffsetX").val()).toFixed(6)
         let moffset_y = Number($("div#Builder #LoadPrefabsOffsetY").val()).toFixed(6)
@@ -1190,6 +1203,7 @@ $(document).ready(() => {
         console.log( moffset_z )
         dataSet = {
             'md5sum' : currentLoadedPrefabList,
+            'useExactCoords' : exactCoords,
             'moffset_x' : moffset_x,
             'moffset_y' : moffset_y,
             'moffset_z' : moffset_z
@@ -1596,48 +1610,37 @@ function rescaleString( prefabString, scale ) {
 }
 
 function scanNearbyPrefabs( elem, dest, diameter ) {
-    let dataSet = {'action': 'select_find'}
-    if ( diameter !== undefined )
-    {
-        dataSet.diameter = diameter
-    } else {
-        dataSet.diameter = 10
-    }
-    $.ajax({
-        type:'post',
-        url:'/ajax',
-        data: dataSet,
-        dataType: 'json'
-    })
-    .done( (data) => {
-        if ( data.result == 'OK' )
+    wsAddHandler( 'select_find_save', ( data ) => {
+        console.log( 'select_find_save: ', data )
+        console.log( 'select_find_save saveitems: ', data.data.scanitems )
+        if ( !!data.result && data.result == 'OK' )
         {
-            if ( data.data.Result !== undefined )
+            $('.ScannedPrefab').remove()
+            let itemList = data.data.scanitems
+            console.log( "itemList: ", itemList )
+            itemList.sort( function(a, b) {
+                let aname = a.Name.replace(/^[0-9]+\ -\ /, '')
+                let bname = b.Name.replace(/^[0-9]+\ -\ /, '')
+                return ( aname.toUpperCase() > bname.toUpperCase() ) ? 1 : -1
+            })
+            let placed = 0;
+            for ( let i = 0; i < itemList.length; i++ )
             {
-                $('.ScannedPrefab').remove()
-                let itemList = data.data.Result
-                itemList.sort( function(a, b) { return ( a.Name.toUpperCase() > b.Name.toUpperCase() ) ? 1 : -1 } )
-                console.log( "iterating data.data.Result ")
-                console.log( itemList )
-                let placed = 0;
-                for( var i = 0; i < itemList.length; i++ ){
-                    let item = itemList[i]
-                    let matches = item.Name.match(/^([a-zA-Z0-9_\-\ ]+)\(Clone\)/)
-                    console.log( matches )
-                    let name = (!!matches && !!matches[1])? matches[1] : "Unknown"
-                    let nName = name.replace(/[ \(\)-]/g, "_")
-                    if ( ! builder_saveable_hashes.find( r => r.Name == nName ) ) continue;
-                    if ( item.Name.includes("VR Player") ) continue;
-                    if ( item.Name.includes("Key Standard") ) continue;
-                    placed++;
-                    let evenodd = ( placed % 2 == 0 ) ? 'even' : 'odd'
-                    $(dest).append("<div class='ScannedPrefab row w-100 "+ evenodd+"' id='"+ item.Identifier +"' name='"+ item.Name +"'><span class='col mr-auto'>"+ item.Name +"</span><a class='col-1 ml-auto trash_prefab' id='"+ item.Identifier +"'><i class='fas fa-window-close'/></a></div>")
-                }
+                let item = itemList[i]
+                //let matches = item.Name.match(/([a-zA-Z0-9_\-\ ]+)\(Clone\)/)
+                //console.log( matches )
+                //let name = (!!matches && !!matches[1])? matches[1] : "Unknown"
+                let name = item.Name.replace(/\(Clone\)/, "")
+                let saveName = name.replace(/^[0-9]+\ -\ /, '')
+                placed++
+                let evenodd = ( placed % 2 == 0 ) ? 'even' : 'odd'
+                $(dest).append("<div class='ScannedPrefab row w-100 "+ evenodd+"' id='"+ item.Identifier +"' name='"+ saveName +"' data-hash='"+ item.PrefabHash +"'><span class='col mr-auto'>"+ name +"</span><a class='col-1 ml-auto trash_prefab' id='"+ item.Identifier +"'><i class='fas fa-window-close'/></a></div>")
             }
+            $("#SavePrefabListToFileButton").show()
         }
-        $("#SavePrefabListToFileButton").show()
-        updateServer(data)
-    })    
+    })
+
+    wsSendJSON({ action: 'select_find_save', diameter: diameter })
 }
 
 
