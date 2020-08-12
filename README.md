@@ -46,7 +46,7 @@ https://github.com/edencomputing/attprefabulator/releases/
 #### Known issues:
 - ~~can only be used by one person at a time on each server, one person selecting items breaks the other player's selections~~
 
-- Prefabulator movement controls do not currently work using Oculus dashboard.  I recommend running through SteamVR and using an overlay tool like OVRToolkit or OVRDrop in the meantime.
+- ~~Prefabulator movement controls do not currently work using Oculus dashboard.  I recommend running through SteamVR and using an overlay tool like OVRToolkit or OVRDrop in the meantime.~~ Use the A button on the controller to interact with Prefabulator window controls.  For some reason using the trigger is not sending a complete 'click' event, but using A button allows the new click+hold behavior and acts more like a real mouseclick.
 
 
 ## Usage 
