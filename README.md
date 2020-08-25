@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.6.0 - Added item grouping, group selection, and moving (and rotating!) groups of objects together
+
 - v1.5.3 - Reworked saves to use prefab parentage instead of builder whitelist, this fixes saving newly introduced items. Moved "use exact coordinates" option from Save to Load, so builder can choose to spawn exact or relative. Made a new connection for Save/Load to prevent interference
 
 - v1.5.2 - Added subscription selections to the console so you can control which events you watch
