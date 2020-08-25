@@ -276,6 +276,12 @@ a.disabled {
   cursor: default;
 }
 
+.checkbox-lg {
+  top: .5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 #Controls {
   display: inline-block show;
 }

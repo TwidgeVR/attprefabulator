@@ -3,6 +3,8 @@ var selectedPlayerName = null;
 var selectedConfigForm = null;
 var currentPlayersList = null;
 var currentLoadedPrefabList = null;
+var prefabGroups = {};
+var nextPrefabGroupId = 1;
 
 $(document).ready(() => {
 
@@ -79,6 +81,17 @@ $(document).ready(() => {
         $("#SpawnPrefabs").show()
     })
 
+    $("div#Prefabs #GroupPrefabsNav").click( () => {
+        $(".prefabsnav").toggleClass("active", false)
+        $(".SubMessage").hide()
+        $("#GroupPrefabsNav").toggleClass("active")
+        $("#GroupPrefabs").show()
+        if ( Object.keys(prefabGroups).length == 0 )
+        {
+            updateGroupPrefabList( "GroupPrefabsItemList" )
+        }
+    })
+
     $("div#Builder #SavePrefabsNav").click( () => {
         $(".prefabsnav").toggleClass("active", false)
         $(".SubMessage").hide()
@@ -109,15 +122,40 @@ $(document).ready(() => {
         $("#SpawnCount").val(1)
     })
 
-    $("#DestroySelectedPrefab").click( ( e ) => deletePrefab( selectedPrefabId, $("#ClosestPrefab b")) )
+    $("#DestroySelectedPrefab").click( ( e ) => {
+        let optSelected = $("#SelectedPrefabSelect option:selected").val()
+        deletePrefab( optSelected )
+    })
 
     $("#SelectFind").click( ( e ) => {
         selectFind( e.currentTarget, $("#SelectFindItems"), $("#FindPrefabs #FindPrefabsScanDiameter").val() )
     })
 
-    $("#SelectFindItems").on( 'click', '.SelectablePrefab', (e) => { 
+    $("#SelectFindItems").on( 'click', '.SelectablePrefabAnchor', (e) => {
         selectedPrefabId = e.target.id;
         selectPrefabById( e.currentTarget, e.target.id, e.target.name )
+    })
+
+    $("#SelectablePrefabsAll").change( (e) => {
+        console.log( "SelectablePrefabsAll changed")
+        let checked = ( $(e.currentTarget).prop('checked') )
+        $(".SelectablePrefabCheckbox").each( (i, item) => {
+            $(item).prop('checked', checked )
+        })
+    })
+
+    $("#SelectFindToGroup").click( (e) => {
+        let selectedItems = []
+        $(".SelectablePrefabCheckbox:checked").each( (i, item) => {
+            selectedItems.push({ Identifier: $(item).val(), Name: $(item).attr('name') })
+        })
+        let groupName = $("#SelectFindToGroupName").val()
+        let group = { id: nextPrefabGroupId++, name: groupName, items: selectedItems }
+        prefabGroups[ group.id ] = group
+        updateGroupPrefabList( "GroupPrefabsItemList", selectedItems )
+        updateGroupPrefabsSelect( "GroupPrefabsSelectGroup", group.id )
+        selectPrefabGroup( group.id, true )
+        $('#GroupPrefabsNewGroup').val('')
     })
 
     $("#SearchNearestItems").keyup( (e) => {
@@ -953,30 +991,43 @@ $(document).ready(() => {
         let prefabId = optSelected.val()
         if ( !!prefabId )
         {
-            dataSet = {
-                'action': 'select_prefab',
-                'prefabId': prefabId
-            }
-            $.ajax({ type:'post', url:'/ajax', data: dataSet, dataType:'json'})
-                .done( (data) => {
-                    if ( data.result == 'OK' )
-                    {
-                        selectedPrefabId = prefabId
-                        console.log( "select prefab from history "+ selectedPrefabId )
+            if ( `${prefabId}`.includes('group') )
+            {
+                selectedPrefabId = prefabId
+                groupId = prefabId.split( '_' )[1]
+                selectPrefabGroup( groupId )
+            } else {
+                console.log( "Select changed to: ", optSelected, prefabId )
+                dataSet = {
+                    'action': 'select_prefab',
+                    'prefabId': prefabId
+                }
+                $.ajax({ type:'post', url:'/ajax', data: dataSet, dataType:'json'})
+                    .done( (data) => {
+                        if ( data.result == 'OK' )
+                        {
+                            selectedPrefabId = prefabId
+                            console.log( "select prefab from history "+ selectedPrefabId )
 
-                        flash( e.target, "20, 255, 20" )
-                    } else {
-                        flash( e.target, "255, 20, 20" )
-                    }
-                })
+                            flash( e.target, "20, 255, 20" )
+                        } else {
+                            flash( e.target, "255, 20, 20" )
+                            optSelected.remove()
+                            let newSelected = $("#SelectedPrefabSelect option:last").val()
+                            $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
+                        }
+                    })
+            }
         }
     })
 
     $("#FindPrefabs #SelectFindSearch").keyup( (e) => {
         let parent = "#FindPrefabs"
         let value = $(e.target).val().trim().toLowerCase()
-        let itemsGroup = $(parent + " div#SelectFindItems button.list-group-item")
+        let itemsGroup = $(parent + " div#SelectFindItems div.list-group-item")
         itemsGroup.toggleClass("active", false)
+        itemsGroup.find('input:checkbox').prop('checked', false )
+        $("#SelectablePrefabsAll").prop('checked', false )
         if ( value == '' )
         {
             itemsGroup.show()
@@ -984,8 +1035,8 @@ $(document).ready(() => {
             itemsGroup.each((i, elem) => {
                 let hasMatch = 
                 ( 
-                  $(elem).attr('id').toLowerCase().indexOf( value ) > -1
-                  || $(elem).text().toLowerCase().indexOf( value ) > -1
+                  $(elem).find('a').attr('id').toLowerCase().indexOf( value ) > -1
+                  || $(elem).find('a').text().toLowerCase().indexOf( value ) > -1
                 )
                 if ( hasMatch )
                     $(elem).show()
@@ -1174,6 +1225,7 @@ $(document).ready(() => {
                 </div>`)
             }
             currentLoadedPrefabList = data.md5
+            currentLoadedPrefabListName = data.filename
             $("div#Builder #LoadPrefabListAuthor").html(header.player)
             $("div#Builder #LoadPrefabListFilename").html(data.filename)
             if ( !header.exact ) {
@@ -1186,8 +1238,6 @@ $(document).ready(() => {
             console.log( currentLoadedPrefabList )
         })
     })
-
-
 
     $("div#Builder #LoadPrefabListSpawnItems").click( ( e ) => {
         $(e.target).toggleClass('disabled', true)
@@ -1206,7 +1256,8 @@ $(document).ready(() => {
             'useExactCoords' : exactCoords,
             'moffset_x' : moffset_x,
             'moffset_y' : moffset_y,
-            'moffset_z' : moffset_z
+            'moffset_z' : moffset_z,
+            'filename' : currentLoadedPrefabListName
         }
         $.ajax({
             type: 'post',
@@ -1317,6 +1368,36 @@ $(document).ready(() => {
         }
     })
 
+    $(`#GroupPrefabsItemList`).on('click', `.GroupPrefabsItemListItem`, (e) => {
+        $(e.target).toggleClass('active')
+    })
+
+    $('#GroupPrefabsCreateGroupBtn').on('click', (e) => {
+        let groupName = $('#GroupPrefabsNewGroup').val()
+        let selectedItemList = []
+        $('#GroupPrefabsItemList .active').each( (i, elem) => {
+            selectedItemList.push( { Identifier: $(elem).prop('id'), Name: $(elem).text() } )
+        })
+        let group = { id: nextPrefabGroupId++, name: groupName, items: selectedItemList }
+        prefabGroups[ group.id ] = group
+        updateGroupPrefabList( "GroupPrefabsItemList", selectedItemList )
+        updateGroupPrefabsSelect( "GroupPrefabsSelectGroup", group.id )
+        selectPrefabGroup( group.id, true )
+        $('#GroupPrefabsNewGroup').val('')
+    })
+
+    $('#GroupPrefabsSelectGroup').on('change', ( e ) => {
+        let optSelected = $(e.target).find("option:selected").val()
+        console.log( "select change, selected option is: ", optSelected )
+        if ( optSelected == 'selectedPrefabs' )
+        {
+            updateGroupPrefabList( "GroupPrefabsItemList" )
+        } else {
+            let group = prefabGroups[ optSelected ]
+            updateGroupPrefabList( "GroupPrefabsItemList", group.items )
+        }
+    })
+
     // Add some default websockets handlers
     var CommandTerminalLogParity = true
     var ctLog = $("#CommandTerminalLog")
@@ -1402,6 +1483,29 @@ $(document).ready(() => {
             scrollTop: ctLog[0].scrollHeight - ctLog[0].clientHeight
         }, 800 )
     })
+
+    wsAddHandler('load_prefabs', ( message ) => {
+        console.log( "load_prefabs: ", message )
+        let groupName = 'loaded prefabs group'
+        if ( !!message.data.filename )
+        {
+            groupName = message.data.filename.replace(/\.[^/.]+$/, '')
+        }
+        let selectedItemList = []
+        //Occasionally the list will contain undefined members, filter them
+        for( let i = 0; i < message.data.items.length; i++ )
+        {
+            if ( message.data.items[i] !== null )
+            {
+                selectedItemList[i] = message.data.items[i]
+            }
+        }
+        let group = { id: nextPrefabGroupId++, name: groupName, items: selectedItemList }
+        prefabGroups[ group.id ] = group
+        updateGroupPrefabList( "GroupPrefabsItemList", selectedItemList )
+        updateGroupPrefabsSelect( "GroupPrefabsSelectGroup", group.id )
+        selectPrefabGroup( group.id, true )
+    })
 })
 
 function addSpinner( e )
@@ -1414,23 +1518,31 @@ function delSpinner( e, ihtml )
     $(e.target).html(ihtml)
 }
 
-function deletePrefab( id, selectDisplay ) {
-    dataSet = { 'selectedPrefabId': id }
-    dataSet.action = 'destroy_prefab'
-    $.ajax({
-        type: 'post',
-        url: '/ajax',
-        data: dataSet,
-        dataType: 'json'
-    })
-    .done( (data) => {
-        if ( typeof(selectDisplay) !== undefined )
-        {
+function deletePrefab( id ) {
+    console.log( "delete prefab: ", id )
+    if ( `${id}`.includes('group') )
+    {
+        let groupId = `${id}`.split('_')[1]
+        wsSendJSON( { action: 'delete_prefab_group', id: groupId, group: prefabGroups[groupId] } )
+
+        $("#SelectedPrefabSelect option:selected").remove()
+        let newSelected = $("#SelectedPrefabSelect option:last").val()
+        $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
+    } else {
+        dataSet = { 'selectedPrefabId': id }
+        dataSet.action = 'destroy_prefab'
+        $.ajax({
+            type: 'post',
+            url: '/ajax',
+            data: dataSet,
+            dataType: 'json'
+        })
+        .done( (data) => {
             $("#SelectedPrefabSelect option:selected").remove()
-            let newSelected = $("#SelectedPrefabSelect option:first").val()
+            let newSelected = $("#SelectedPrefabSelect option:last").val()
             $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
-        }
-    })
+        })
+    }
 }
 
 function selectPrefabById( elem, id, name ) {
@@ -1456,6 +1568,21 @@ function selectPrefabById( elem, id, name ) {
 
     })
 
+}
+
+function selectPrefabGroup( groupId, isNew )
+{
+    selectedPrefabId = `group_${groupId}`
+    let group = prefabGroups[ groupId ]
+    wsSendJSON({ action: 'select_prefab_group', id : groupId, group : group })
+    if ( isNew )
+    {
+        $(`#SelectedPrefabSelect option[value="group_${groupId}"]`).remove()
+        $(`#SelectedPrefabSelect`).append(
+            new Option(`Group ${group.id} - ${group.name} [${group.items.length} items]`, `group_${group.id}`, true, true )
+        );
+        $('#DestroySelectedPrefab').show()
+    }
 }
 
 function findNearestPrefabById( e, id, selectDisplay ) {
@@ -1667,7 +1794,10 @@ function selectFind( elem, dest, diameter ) {
                 let itemList = data.data.Result
                 for( var i = 0; i < itemList.length; i++ ){
                     let item = itemList[i]
-                    $(dest).append("<button class='SelectablePrefab list-group-item list-group-item-action' id='"+ item.Identifier +"' name='"+ item.Name +"'> "+ item.Identifier +" - "+ item.Name +"</button>")
+                    let checkbox = `<input class='col-1 SelectablePrefabCheckbox checkbox-lg' type='checkbox' name='${item.Name}' value='${item.Identifier}' />`
+                    let anchor = `<a class='col SelectablePrefabAnchor' id='${item.Identifier}' name='${item.Name}'>${item.Identifier} - ${item.Name}</a>`
+                    let boundbox = `<div class='row SelectablePrefab list-group-item'>${checkbox}${anchor}</div>`
+                    $(dest).append( boundbox )
                 }
             }
         }
@@ -1862,5 +1992,49 @@ function loadPlayersOnline( callBack )
             console.log( "Error retrieving player list" )
             return null
         }
+    })
+}
+
+function updateGroupPrefabList( listElem, itemList )
+{
+    if ( itemList !== undefined )
+    {
+        console.log( itemList )
+        $(`#${listElem}`).empty()
+        let evenodd = false
+        itemList.forEach( (item, i) => {
+            let itemColor = ( evenodd ) ? 'even' : 'odd'
+            evenodd = !evenodd
+            $(`#${listElem}`).append(`<a class='${listElem}Item list-group-item ${itemColor}' id='${item.Identifier}' name='${item.Identifier}'>${item.Name}</a>` )
+        })
+    } else {
+        // Pull the list from the Selected history
+        let evenodd = false
+        $(`#${listElem}`).empty()
+        $("#SelectedPrefabSelect option").each( (key, val) => {
+            let itemColor = ( evenodd ) ? 'even' : 'odd'
+            evenodd = !evenodd
+            let itemId = $(val).prop('value')
+            let itemText = $(val).text()
+            if ( !`${itemId}`.includes("group") )
+            {
+                $(`#${listElem}`).append(`<a class='${listElem}Item list-group-item ${itemColor}' id='${itemId}' name='${itemId}'>${itemText}</a>` )
+            }
+        })
+    }
+}
+
+function updateGroupPrefabsSelect( selectElem, selectedItem )
+{
+    $(`#${selectElem}`).empty()
+    $(`#${selectElem}`).append( new Option( 'Selection History', 'selectedPrefabs', false, true ) )
+    let selected = false
+    Object.keys(prefabGroups).forEach( ( key ) => {
+        let group = prefabGroups[key]
+        console.log( `is ${selectedItem} == ${group.id} ?` )
+        selected = ( !!selectedItem && selectedItem == group.id )
+        $(`#${selectElem}`).append(
+            new Option( `Group ${group.id} - ${group.name} [${group.items.length} items]`, group.id, selected, selected )
+        )
     })
 }

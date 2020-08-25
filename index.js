@@ -24,6 +24,19 @@ var loadedPrefabLists = {}
 var subscriptionList = []
 var subscribedSubscriptions = {}
 
+var prefabGroups = {}
+var selectedPrefabGroup = undefined
+
+const rotationEulerOrder = 'YXZ'
+const translationDirs = {
+    "up"        : [ 0, 1, 0 ],
+    "down"      : [ 0,-1, 0 ],
+    "forward"   : [ 0, 0, 1 ],
+    "back"      : [ 0, 0,-1 ],
+    "right"     : [ 1, 0, 0 ],
+    "left"      : [-1, 0, 0 ]
+}
+
 const server = express()
 const port = Number(process.env.PORT) || 21129
 const useSavedPassword = ( process.env.USE_SAVED_PASS === undefined )
@@ -336,8 +349,8 @@ server.get('/control', asyncMid( async ( req, res, next ) => {
         }
         
         try {
-            await loadSpawnableItems(req)
-            await loadSubscriptions(req)
+            //await loadSpawnableItems(req)
+            //await loadSubscriptions(req)
             //console.log( subscriptionList )
             console.log( "rendering control" )
             res.render("control", { version: version, serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList, subscriptions: subscriptionList, subscribed: subscribedSubscriptions })
@@ -408,9 +421,9 @@ server.post('/save_prefabs', asyncMid( async( req, res, next ) => {
                 }
 
                 item.Rotation = {
-                    x : rad2dec( item.roteuler.x ),
-                    y : rad2dec( item.roteuler.y ),
-                    z : rad2dec( item.roteuler.z ),
+                    x : rad2deg( item.roteuler.x ),
+                    y : rad2deg( item.roteuler.y ),
+                    z : rad2deg( item.roteuler.z ),
                 }
                 //console.log( "item tostring:", item )
                 positionList.push(item)                
@@ -531,6 +544,7 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
             parseFloat(req.body.moffset_z)
         ]
         let translatedPrefabs = clone( prefabList.prefabs )
+        let prefabFileName = req.body.filename
 
         // If a persistent offset is specified, also apply it
         if ( !!prefabList.header.offset )
@@ -652,6 +666,7 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
             })
         }
 
+        let spawnedFromList = []
         function spawnPrefabsFromList( ind ) {
             return new Promise( (resolve, reject) => {
                 if ( ind === undefined ) ind = 0
@@ -676,6 +691,11 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                                     resolve()
                                 break
                                 case 'spawn.string':
+                                    console.log( message.data.Result )
+                                    if ( !!message.data.Result[0] )
+                                    {
+                                        spawnedFromList.push( message.data.Result[0] )
+                                    }
                                     command = `select rotate exact ${rot.x},${rot.y},${rot.z}`
                                 break
                                 case 'select rotate.exact':
@@ -709,7 +729,8 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
                 } else {
                     if ( ind >= translatedPrefabs.length ) 
                     {
-                        console.log("finished spawning prefab list")
+                        console.log("finished spawning prefab list", spawnedFromList )
+                        wsSendJSON( { result: 'OK', data: { action: 'load_prefabs', filename: prefabFileName, items: spawnedFromList } } )
                         resolve()
                     } else {
                         console.log("finished prematurely, empty prefab list?")
@@ -794,11 +815,45 @@ wsAddHandler( 'move', async ( data ) => {
     let mdirection = data.direction;
     command = "select move "+ mdirection +" "+ wsMap.distanceMag
     console.log( command )
-    if ( !!data.selectedPrefabId ) {
-        console.log( "selecting prefab: "+ data.selectedPrefabId )
-        await attConsole.send( "select "+ data.selectedPrefabId )
+    attConsole.onMessage = ( message ) => {
+        console.log( message )
     }
-    await attConsole.send( command )
+
+    if ( !!data.selectedPrefabId && `${data.selectedPrefabId}`.includes("group") )
+    {
+        console.log("Move a group of prefabs: ", data )
+        let groupId = data.selectedPrefabId.split('_')[1]
+        let groupItems = prefabGroups[ groupId ].items
+
+        if ( !!prefabGroups[groupId].tjsGroup )
+        {
+            let tjsGroup = prefabGroups[ groupId ].tjsGroup
+            // Move virtual object by the specified amount
+            tjsGroup.translateX( translationDirs[ mdirection ][0] * wsMap.distanceMag )
+            tjsGroup.translateY( translationDirs[ mdirection ][1] * wsMap.distanceMag )
+            tjsGroup.translateZ( translationDirs[ mdirection ][2] * wsMap.distanceMag )
+            tjsGroup.updateMatrixWorld()
+            for ( let i = 0; i < groupItems.length; i++ )
+            {
+                let itemId = groupItems[i].Identifier
+                let tjsItem = tjsGroup.children.find( x => x.name == itemId )
+                let newPos = new THREE.Vector3
+                tjsItem.getWorldPosition( newPos )
+                console.log("select move exact: ", newPos )
+                console.log( `select move exact ${newPos.x},${newPos.y},${newPos.z}` )
+
+                await attConsole.send(`select ${itemId}`)
+                await attConsole.send(`select move exact ${newPos.x},${newPos.y},${newPos.z}`)
+            }
+        }
+
+    } else if ( !!data.selectedPrefabId ) {
+        await attConsole.send(`select ${data.selectedPrefabId}`)
+        await attConsole.send( command )
+    } else {
+        // just move the currently selected object
+        await attConsole.send( command )
+    }
     wsSendJSON({ result: 'OK', data: data })
 })
 
@@ -807,15 +862,70 @@ wsAddHandler( 'rotate', async ( data ) => {
     let rotateAngle = ( data.direction == 'ccw') ? 360 + ( -1 * wsMap.rotateAngle ): wsMap.rotateAngle;
     command = "select rotate "+ raxis +" "+ rotateAngle
     console.log( command )
-    if ( !!data.selectedPrefabId ) {
-        await attConsole.send( "select "+ data.selectedPrefabId )
+    attConsole.onMessage = ( message ) => {
+        console.log( message )
     }
-    await attConsole.send( command )                
+
+    if ( !!data.selectedPrefabId && `${data.selectedPrefabId}`.includes("group") )
+    {
+        let groupId = data.selectedPrefabId.split('_')[1]
+        let groupItems = prefabGroups[ groupId ].items
+
+        let eulerRotation = new THREE.Euler( 0, 0, 0, rotationEulerOrder )
+        if ( !!prefabGroups[groupId].tjsGroup )
+        {
+            let tjsGroup = prefabGroups[ groupId ].tjsGroup
+            // Move virtual object by the specified amount
+            switch( raxis )
+            {
+                case "pitch":
+                    tjsGroup.rotateX( deg2rad( rotateAngle ) )
+                break
+                case "yaw":
+                    tjsGroup.rotateY( deg2rad( rotateAngle ) )
+                break
+                case "roll":
+                    tjsGroup.rotateZ( deg2rad( rotateAngle ) )
+                break
+            }
+            tjsGroup.updateMatrixWorld()
+            for ( let i = 0; i < groupItems.length; i++ )
+            {
+                let itemId = groupItems[i].Identifier
+                let tjsItem = tjsGroup.children.find( x => x.name == itemId )
+                let newPos = new THREE.Vector3
+                let newRot = new THREE.Euler()
+                let newQuat = new THREE.Quaternion()
+                tjsItem.getWorldQuaternion( newQuat )
+                newRot.setFromQuaternion( newQuat, rotationEulerOrder )
+                tjsItem.getWorldPosition( newPos )
+                let newAng = { x: rad2deg( newRot.x ), y: rad2deg( newRot.y ), z: rad2deg( newRot.z )}
+                console.log( `newRot`, newRot)
+                console.log( `select rotate exact ${newAng.x},${newAng.y},${newAng.z}`)
+                console.log( `select move exact ${newPos.x},${newPos.y},${newPos.z}` )
+
+                await attConsole.send(`select ${itemId}`)
+                await attConsole.send(`select rotate exact ${newAng.x},${newAng.y},${newAng.z}`)
+                await attConsole.send(`select move exact ${newPos.x},${newPos.y},${newPos.z}`)
+            }
+        }
+
+    } else if ( !!data.selectedPrefabId ) {
+        await attConsole.send(`select ${data.selectedPrefabId}`)
+        await attConsole.send( command )
+    } else {
+        // just move the currently selected object
+        await attConsole.send( command )
+    }
     wsSendJSON({ result: 'OK', data: data })
 })
 
 wsAddHandler('look-at', async( data ) => {
-    console.log( data )
+    if ( data.selectedPrefabId.includes("group") )
+    {
+        console.log("Run look-at on a group of prefabs?: ", data )
+        return
+    }
     let userId = attSession.getUserId()
     command = `select look-at ${userId}`
     console.log( command )
@@ -827,6 +937,11 @@ wsAddHandler('look-at', async( data ) => {
 })
 
 wsAddHandler('snap-ground', async( data ) => {
+    if ( data.selectedPrefabId.includes("group") )
+    {
+        console.log("Snap a group of prefabs to the ground (lowest coordinate): ", data )
+        return
+    }
     command = `select snap-ground`
     console.log( command )
     if ( !!data.selectedPrefabId ) {
@@ -908,6 +1023,96 @@ wsAddHandler('select_find_save', async( data ) => {
 
 })
 
+wsAddHandler( 'select_prefab_group', async( data ) => {
+    console.log( "Selecting a prefab group: ", data.id, data.group )
+    if ( prefabGroups[ data.id ] == undefined )
+    {
+        prefabGroups[ data.id ] = data.group
+    }
+    selectedPrefabGroup = data.id
+    let items = prefabGroups[ data.id ].items
+
+    // Find the positions for all of the objects in this group if not known
+    // Generate a set of 3D buffer objects to manipulate
+    var defMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+    var tjsGroup = new THREE.Group()
+    tjsGroup.name = data.id
+    tjsGroup.rotation.set( 0,0,0, rotationEulerOrder )
+    var scannedItemCount = 0
+    var min_x, max_x, min_y, max_y, min_z, max_z;
+    attConsole.onMessage = ( message ) => {
+        switch( message.data.Command.FullName )
+        {
+            case "select.get":
+                if ( !!message.data.Result )
+                {
+                    console.log( "select get: ", message.data.Result )
+                    let item = message.data.Result
+
+                    scannedItemCount++
+                    if ( min_x === undefined || item.Position[0] <= min_x ) { min_x = item.Position[0] }
+                    if ( min_y === undefined || item.Position[1] <= min_y ) { min_y = item.Position[1] }
+                    if ( min_z === undefined || item.Position[2] <= min_z ) { min_z = item.Position[2] }
+                    if ( max_x === undefined || item.Position[0] >= max_x ) { max_x = item.Position[0] }
+                    if ( max_y === undefined || item.Position[1] >= max_y ) { max_y = item.Position[1] }
+                    if ( max_z === undefined || item.Position[2] >= max_z ) { max_z = item.Position[2] }
+                    let geometry = new THREE.BoxBufferGeometry( 1,1,1 )
+                    let cube = new THREE.Mesh( geometry, defMaterial )
+                    cube.name = `${item.Identifier}`
+                    cube.position.set(
+                        item.Position[0],
+                        item.Position[1],
+                        item.Position[2]
+                    )
+                    cube.rotation.set(
+                        deg2rad(item.Rotation[0]),
+                        deg2rad(item.Rotation[1]),
+                        deg2rad(item.Rotation[2]),
+                        rotationEulerOrder
+                    )
+                    tjsGroup.add( cube )
+                }
+            break
+        }
+        if ( scannedItemCount == items.length)
+        {
+            let center_x = min_x + (( max_x - min_x ) / 2)
+            let center_y = min_y + (( max_y - min_y ) / 2)
+            let center_z = min_z + (( max_z - min_z ) / 2)
+            console.log( `center is: ${center_x},${center_y},${center_z}`)
+            tjsGroup.position.set( center_x, center_y, center_z )
+            tjsGroup.children.forEach( (child) => {
+                child.applyMatrix4( new THREE.Matrix4().makeTranslation( -center_x, -center_y, -center_z ))
+            })
+            tjsGroup.updateMatrixWorld()
+            prefabGroups[ data.id ].tjsGroup = tjsGroup
+            console.log( "3D buffer geometry ready", tjsGroup )
+        }
+    }
+
+    console.log( "Getting item list: "+ data.id +": ", prefabGroups[ data.id ])
+
+    for( let i = 0; i < items.length; i++ )
+    {
+        console.log( "Getting item: ", items[i] )
+        await attConsole.send(`select get ${items[i].Identifier}`)
+    }
+})
+
+wsAddHandler( 'delete_prefab_group', async( data ) => {
+    console.log( "Deleting a prefab group: ", data.id, data.group )
+    if ( prefabGroups[ data.id ] )
+    {
+        group = prefabGroups[data.id]
+        for( let i = 0; i < group.items.length; i++ )
+        {
+            let item = group.items[i]
+            await attConsole.send(`select ${item.Identifier}`)
+            await attConsole.send(`select destroy`)
+        }
+        delete prefabGroups[ data.id ]
+    }
+})
 
 
 // TODO: replace these with websocket handlers
@@ -1356,9 +1561,14 @@ function unpackfloat( value )
     return unpackedFloat
 }
 
-function rad2dec( angle )
+function rad2deg( angle )
 {
     return angle * ( 180 / Math.PI )
+}
+
+function deg2rad( angle )
+{
+    return angle * ( Math.PI / 180 )
 }
 
 function parseBool(val)

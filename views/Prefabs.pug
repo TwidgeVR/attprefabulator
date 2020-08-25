@@ -1,7 +1,9 @@
 div#Prefabs.Message(class="container hidden" style="padding-top: 10px;")
     div.ContentRow.row
-        a#SpawnPrefabsNav.prefabsnav.col.ControlsMini.text-center Spawnable Items               
+        a#SpawnPrefabsNav.prefabsnav.active.col.ControlsMini.text-center Spawnable Items
         a#FindPrefabsNav.prefabsnav.col.ControlsMini.text-center Find Nearby
+        a#GroupPrefabsNav.prefabsnav.col.ControlsMini.text-center Group Select
 
-    include FindPrefabs.pug        
+    include FindPrefabs.pug
     include SpawnPrefabs.pug
+    include GroupPrefabs.pug
