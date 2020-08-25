@@ -100,7 +100,7 @@ USE_SAVED_PASS=0 npm run server
 
 Finally, browse to the app with your favorite web browser, at:
 
-- http://localhost:8000
+- http://localhost:21129
 
 
 Login using your A Township Tale user and password, select a server you're currently playing on, and wave the console command line goodbye!
