@@ -349,8 +349,8 @@ server.get('/control', asyncMid( async ( req, res, next ) => {
         }
         
         try {
-            //await loadSpawnableItems(req)
-            //await loadSubscriptions(req)
+            await loadSpawnableItems(req)
+            await loadSubscriptions(req)
             //console.log( subscriptionList )
             console.log( "rendering control" )
             res.render("control", { version: version, serverUserId: userId, serverUsername: userName, serverName: sname, spawnableItems: spawnableItemsList, subscriptions: subscriptionList, subscribed: subscribedSubscriptions })

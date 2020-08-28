@@ -11,6 +11,8 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.6.2 - Oops! Hotfix for loading of spawnables and subscriptions
+
 - v1.6.1 - Added prefab and group cloning! Also time of day to server settings, and title tags to all icon-only controls.
 
 - v1.6.0 - Added item grouping, group selection, and moving (and rotating!) groups of objects together
