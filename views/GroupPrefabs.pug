@@ -1,0 +1,18 @@
+div#GroupPrefabs.SubMessage.pt-3(class="container hidden")
+    
+    div.ContentRow.row
+        span.text-left.small Select from an existing group:
+    div.ContentRow.row
+        select#GroupPrefabsSelectGroup.form-control.w-100(style="flex:1")
+            option(value="selectedPrefabs") Selection History
+
+    div.ContentRow.row.mt-2
+        span.text-left.small Select from these items to make a new group:
+    div.ContentRow.row
+        div#GroupPrefabsItemList(class="list-group" style="height: 360px;")
+
+    div.ContentRow.row.mt-2
+        span.text-left.small Create a new group from selected:
+    div.ContentRow.row
+        input#GroupPrefabsNewGroup.col.form-control.disabled.w-100(type="text" placeholder="New group name")
+        a#GroupPrefabsCreateGroupBtn.col-3.mt-0.ControlsMini.text-center Create Group
