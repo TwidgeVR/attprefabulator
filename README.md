@@ -11,7 +11,7 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
-- v1.6.1 - Added prefab cloning! Also time of day to server settings, and title tags to all icon-only controls.
+- v1.6.1 - Added prefab and group cloning! Also time of day to server settings, and title tags to all icon-only controls.
 
 - v1.6.0 - Added item grouping, group selection, and moving (and rotating!) groups of objects together
 
@@ -52,6 +52,7 @@ https://github.com/edencomputing/attprefabulator/releases/
 
 - ~~Prefabulator movement controls do not currently work using Oculus dashboard.  I recommend running through SteamVR and using an overlay tool like OVRToolkit or OVRDrop in the meantime.~~ Use the A button on the controller to interact with Prefabulator window controls.  For some reason using the trigger is not sending a complete 'click' event, but using A button allows the new click+hold behavior and acts more like a real mouseclick.
 
+- When a Group is selected, the 'look-at' and 'Snap Ground' commands will not work.  This is WIP.
 
 ## Usage 
 
