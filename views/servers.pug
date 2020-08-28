@@ -27,7 +27,7 @@ block layout-content
                             div(class="ServerListItemName col-9") #{server.name}
                             div(class="ServerListItemOnlineCount col-3") [ #{server.online_players.length} ]
 
-            button.btn.btn-primary.mt-3(type="submit") Connect
+            button#ConnectToServer.btn.btn-primary.mt-3(type="submit") Connect
             div.ContentRow.row.mt-2.mb-0.py-3
                 #error
                     if error

@@ -5,11 +5,11 @@ div#PlayerConfig.Message(class="container hidden")
         div.col-4.ml-auto
             div.row
                 a#PlayerConfigStats.PlayerNav.ControlsMini.col.ml-auto.text-center.active
-                    i(class="fas fa-user-edit fa-2x") 
+                    i(class="fas fa-user-edit fa-2x" title="Player Stats")
                 a#PlayerConfigTeleport.PlayerNav.ControlsMini.col.ml-auto.text-center
-                    i(class="fas fa-street-view fa-2x")
+                    i(class="fas fa-street-view fa-2x" title="Player Teleport")
                 a#PlayerConfigTrade.PlayerNav.ControlsMini.col.ml-auto.text-center
-                    i(class="fas fa-gift fa-2x")
+                    i(class="fas fa-gift fa-2x" title="Send to Player")
 
     div#PlayerConfigStats.PlayerConfigDialog
         include PlayerConfigStats.pug

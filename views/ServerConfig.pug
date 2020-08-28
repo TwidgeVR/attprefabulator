@@ -2,6 +2,13 @@ div#ServerConfig.Message(class="container hidden")
     div.ContentRow(class="row")
         i(class="fas fa-cog fa-2x px-3") 
         h4 #{serverName}
+    div.ServerSetting.ContentRow.ControlsMini.row.d-flex.w-100(name="ServerTime")
+        span(class="col-7 text-left align-middle")
+            b Set server clock
+        input.SetServerConfig.form-control.col-3.text-right.align-middle.p-1(type="time" name="ServerTime")
+        span(class="col text-right align-middle")
+            a.SetServerConfig(name="ServerTime")
+                i(class="fas fa-save")
     div.ServerSetting.ContentRow.ControlsMini(class="row d-flex w-100")
         span(class="col-8 text-left align-middle")
             b Drop all on death

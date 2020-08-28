@@ -309,9 +309,6 @@ a.SetServerConfig {
   display: none;
 }
 
-#DestroySelectedPrefab {
-  display: none;
-}
 
 #CommandTerminalLog {
   box-shadow: var(--ui-shawdow);

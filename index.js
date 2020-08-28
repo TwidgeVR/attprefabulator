@@ -755,6 +755,19 @@ server.post('/load_prefabs', asyncMid( async( req, res, next ) => {
     }
 }))
 
+wsAddHandler('server_time_get', async(data) => {
+    attSubscriptions.onMessage = ( message ) => {
+        switch( message.data.Command.FullName )
+        {
+            case "time.":
+                console.log( message )
+                wsSendJSON({ 'result': 'OK', time: message.data.Result, data: data })
+            break
+        }
+    }
+    await attSubscriptions.send('time')
+})
+
 // attSubscription websocket controls
 wsAddHandler( 'subscribe', async ( data ) => {
     attSubscriptions.onMessage = ( message ) => {
@@ -1087,6 +1100,7 @@ wsAddHandler( 'select_prefab_group', async( data ) => {
             tjsGroup.updateMatrixWorld()
             prefabGroups[ data.id ].tjsGroup = tjsGroup
             console.log( "3D buffer geometry ready", tjsGroup )
+            wsSendJSON({'result': 'OK', data: data })
         }
     }
 
@@ -1101,6 +1115,9 @@ wsAddHandler( 'select_prefab_group', async( data ) => {
 
 wsAddHandler( 'delete_prefab_group', async( data ) => {
     console.log( "Deleting a prefab group: ", data.id, data.group )
+    attConsole.onMessage = ( message ) => {
+        console.log( `delete prefab event: `, message )
+    }
     if ( prefabGroups[ data.id ] )
     {
         group = prefabGroups[data.id]
@@ -1111,6 +1128,104 @@ wsAddHandler( 'delete_prefab_group', async( data ) => {
             await attConsole.send(`select destroy`)
         }
         delete prefabGroups[ data.id ]
+    }
+})
+
+wsAddHandler( 'reset_prefab_groups', async(data) => {
+    prefabGroups = []
+})
+
+wsAddHandler( 'clone_prefab', async( data ) => {
+    console.log( "Cloning prefab: ", data )
+    let player = data.player
+    if ( !!data.hash && `${data.hash}`.includes("group") )
+    {
+        console.log("Clone a group of prefabs: ", data )
+        let groupId = data.hash.split('_')[1]
+        let groupItems = prefabGroups[ groupId ].items
+
+        // Just pass the new items back to UI, which will handle the re-selection process
+        // and setup the UI components correctly
+        let newGroup = []
+        let ind = 0
+        newGroup[0] = {}
+        attConsole.onMessage = async( message ) => {
+            console.log( "clone_prefab group onMessage: ", message )
+            switch( message.data.Command.FullName )
+            {
+                case "select.get":
+                    newGroup[ind].pos = message.data.Result.Position
+                    newGroup[ind].rot = message.data.Result.Rotation
+                    await attConsole.send(`select tostring`)
+                break
+
+                case "select.tostring":
+                    let prefabString = message.data.ResultString
+                    await attConsole.send(`spawn string ${player} ${prefabString}`)
+                break
+
+                case "spawn.string":
+                    let prefabId = message.data.Result[0].Identifier
+                    newGroup[ind].Identifier = prefabId
+                    newGroup[ind].Name = message.data.Result[0].Name
+                    let pos = newGroup[ind].pos
+                    let rot = newGroup[ind].rot
+                    await attConsole.send(`select ${prefabId}`)
+                    await attConsole.send(`select rotate exact ${rot[0]},${rot[1]},${rot[2]}`)
+                    await attConsole.send(`select move exact ${pos[0]},${pos[1]},${pos[2]}`)
+                break
+
+                case "select move.exact":
+                    ind++
+                    if ( ind < groupItems.length )
+                    {
+                        newGroup[ind] = {}
+                        selectItemToString( ind )
+                    } else {
+                        // Send back the new group
+                        wsSendJSON({ 'result': 'OK', data: data, group: newGroup })
+                    }
+                break
+            }
+        }
+        let selectItemToString = async ( ind ) => {
+            let item = groupItems[ind]
+            await attConsole.send(`select ${item.Identifier}`)
+            await attConsole.send(`select get ${item.Identifier}`)
+        }
+        selectItemToString( ind )
+
+    } else {
+        let newItem
+        attConsole.onMessage = async ( message ) => {
+            console.log( "clone_prefab onMessage: ", message )
+            switch( message.data.Command.FullName )
+            {
+                case "select.get":
+                    newItem.pos = message.data.Result.Position
+                    newItem.rot = message.data.Result.Rotation
+                    await attConsole.send('select tostring')
+                break
+                case "select.tostring":
+                    // Re-spawn from the string
+                    console.log( "select.tostring response: ", message.data.ResultString )
+                    await attConsole.send(`spawn string ${player} ${message.data.ResultString}`)
+                break
+
+                case "spawn.string":
+                    // Collect the ID and name and return it to the UI
+                    let hash = message.data.Result[0].Identifier
+                    let pos = newItem.pos
+                    let rot = newItem.rot
+                    await attConsole.send(`select ${hash}`)
+                    await attConsole.send(`select rotate exact ${rot[0]},${rot[1]}.${rot[2]}`)
+                    await attConsole.send(`select move exact ${pos[0]},${pos[1]}.${pos[2]}`)
+                    wsSendJSON( { result: 'OK', data: data, prefab: message.data.Result[0] }  )
+                break
+            }
+        }
+        await attConsole.send( `select ${data.hash}` )
+        await attConsole.send( `select get ${data.hash}`)
     }
 })
 
@@ -1314,7 +1429,17 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     let value = ( !!req.body.value ) ? req.body.value : ''
                     if ( !!parameter && !!value )
                     {
-                        command = "settings changeSetting server "+ parameter +" "+ value
+                        switch( parameter )
+                        {
+                            case "ServerTime":
+                                console.log( "set server time: ", value)
+                                let timeValue = value.replace(/:/,'.')
+                                command = `time set ${timeValue}`
+                            break
+                            default:
+                                command = "settings changeSetting server "+ parameter +" "+ value
+                            break
+                        }
                         console.log( command )
                         await attConsole.send( command )
                     } else {

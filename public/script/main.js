@@ -7,6 +7,15 @@ var prefabGroups = {};
 var nextPrefabGroupId = 1;
 
 $(document).ready(() => {
+    $("i").each( ( ind, img ) => {
+        let title = $(img).attr('title')
+        if ( title )
+        {
+            $(img).attr('alt', title )
+        }
+    })
+
+    wsSendJSON({'action':'reset_prefab_groups'})
 
     function controlClickSetup( element, action, direction )
     {
@@ -1279,6 +1288,14 @@ $(document).ready(() => {
         $(e.currentTarget).parent().remove()
     })
 
+    $("#ConnectToServer").click( (e) => {
+        addSpinner( e )
+    })
+
+    $("#LoginButton").click( (e) => {
+        addSpinner( e )
+    })
+
     var ctInput = $("#CommandTerminalInput")
     var ctHistory = {
         currentKey : 0,
@@ -1398,6 +1415,14 @@ $(document).ready(() => {
         }
     })
 
+    $("#CopySelectedPrefab").on('click', (e) => {
+        // TODO: this has to support groups
+        let optSelected = $("#SelectedPrefabSelect").find("option:selected").val()
+        let player = $("input#PlayerConfigUserId").val()
+        console.log( "copy selected prefab: ", optSelected )
+        wsSendJSON({ 'action': 'clone_prefab', 'player': player, 'hash': optSelected })
+    })
+
     // Add some default websockets handlers
     var CommandTerminalLogParity = true
     var ctLog = $("#CommandTerminalLog")
@@ -1506,6 +1531,36 @@ $(document).ready(() => {
         updateGroupPrefabsSelect( "GroupPrefabsSelectGroup", group.id )
         selectPrefabGroup( group.id, true )
     })
+
+    wsAddHandler('clone_prefab', ( message ) => {
+        // Add the item to teh selection history
+        console.log( message )
+        if ( message.result == 'OK' )
+        {
+            if ( !!message.group )
+            {
+                let clonedGroupId = message.data.hash.split('_')[1]
+                let groupName = `Group ${clonedGroupId} Clone`
+                let group = { id: nextPrefabGroupId++, name: groupName, items: message.group }
+                prefabGroups[ group.id ] = group
+                updateGroupPrefabList( "GroupPrefabsItemList", group.items )
+                updateGroupPrefabsSelect( "GroupPrefabsSelectGroup", group.id )
+                selectPrefabGroup( group.id, true )
+
+            } else if( !!message.prefab ) {
+                let hash = message.prefab.Identifier
+                let name = message.prefab.Name
+                selectPrefabById( "SelectedPrefabSelect", hash, name )
+            }
+        }
+    })
+
+    wsAddHandler('select_prefab_group', ( message ) => {
+        console.log( message )
+        let color = ( message.result == 'OK' ) ? "20, 255, 20" : "255, 20, 20"
+        flash( $("#SelectedPrefabSelect"), color )
+    })
+
 })
 
 function addSpinner( e )

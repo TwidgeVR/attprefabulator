@@ -15,15 +15,20 @@ block layout-content
             li#BuilderNavLi(class="topnav navbar-brand col text-center")
                 a#BuilderNav Save | Load                      
 
-    div#SelectedPrefabHistory.ContentRow.container
-        div.ControlsMini.d-flex.w-100
-            span.px-2
+    div#SelectedPrefabHistory.Message.container.p-0
+        div.ControlsMini.d-flex
+            span.px-2.small
                 b Selected:
-            select#SelectedPrefabSelect.form-control.w-100(style="flex:1")
+            select#SelectedPrefabSelect.form-control(style="flex:1")
                 if selectedPrefab
                     option() #{selectedPrefab}
-            a#DestroySelectedPrefab.text-center.px-3
-                i(class="fas fa-trash-alt", alt="Delete Selected Prefab")
+            a#CopySelectedPrefab.ControlsMini.text-center.px-2.ml-2
+                i.fas.fa-copy(title="Clone Selected Prefab")
+            //-a#FavoriteSelectedPrefab.ControlsMini.text-center.px-2
+                //-i.fas.fa-heart(title="Add to Favorites")
+
+            a#DestroySelectedPrefab.ControlsMini.text-center.px-2
+                i.fas.fa-trash-alt(title="Delete Selected Prefab")
 
     include Controls.pug
     include Prefabs.pug
@@ -45,19 +50,19 @@ block layout-content
             div.row
                 span.col-auto.text-center.align-middle.ml-auto
                     a#CommandTerminalNav(class="topnav")
-                        i(class="fas fa-laptop-code p-2" alt="Commands")
+                        i(class="fas fa-laptop-code p-2" title="Commands")
                 span.col-auto.text-center.align-middle
                     a#ConfigurePlayersNav(class="topnav")
-                        i(class="fas fa-users p-2" alt="Players Online")
+                        i(class="fas fa-users p-2" title="Players Config")
                 span.col-auto.text-center.align-middle
                     a#ServerMessagesNav(class="topnav")
-                        i(class="fas fa-comment-dots p-2" alt="Server Messages")
+                        i(class="fas fa-comment-dots p-2" title="Server Messages")
                 span.col-auto.text-center.align-middle
                     a#ConfigureServerNav(class="topnav")
-                        i(class="fas fa-cog p-2" alt="Configure Server")
+                        i(class="fas fa-cog p-2" title="Configure Server")
                 span.col-auto.text-center.align-middle.mr-auto
                     a#SwitchServer(href="/servers" class="text-center")
-                        i(class="fas fa-sign-out-alt p-2" alt="Switch Server")
+                        i(class="fas fa-sign-out-alt p-2" title="Switch Server")
         div.ControlsMini.col-auto.ml-auto.px-4
             div.row
                 span.col.px-4.text-right.align-bottom
@@ -67,7 +72,7 @@ block layout-content
                     a#PlayerConfigNav(class="topnav")
                         input#PlayerConfigUserId(type="hidden" value=serverUserId)
                         input#PlayerConfigUsername(type="hidden" value=serverUsername)
-                        i(class="fas fa-user-cog p-2")
+                        i(class="fas fa-user-cog p-2" title="My Config")
                 span.col-auto.text-right.align-bottom.px-2.mr-auto
                     a#LogoutDoor(href="/login")
-                        i(class="fas fa-door-open p-2")            
+                        i(class="fas fa-door-open p-2" title="Logout")
