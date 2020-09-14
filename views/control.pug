@@ -20,6 +20,7 @@ block layout-content
             span.px-2.small
                 b Selected:
             select#SelectedPrefabSelect.form-control(style="flex:1")
+                option() None
                 if selectedPrefab
                     option() #{selectedPrefab}
             a#CopySelectedPrefab.ControlsMini.text-center.px-2.ml-2

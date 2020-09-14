@@ -9,11 +9,14 @@ div.Controls.w-100.pt-2.pb-2
 
     div.row
         select#TeleportDestinations.form-control.w-100
-            option(value="RespawnPoint" selected) Respawn Point
+            option(value="Home" selected) Player Home
+            option(value="RespawnPoint") Respawn Point
             option(value="OriginalSpawnPoint") New Player Spawn
             option(value="FinishRecustomization") Customization House
             option(value="OutsideCave") Mine Entrance
             option(value="TestingArea") Testing Area
+            option(value="OutsideForest") Forest Entrance
+            option(value="OutsideTower") Climbing Tower Entrance
     div#TeleportToDestinationButton.row
         a#TeleportToDestination.ControlsMini.col.text-center.align-middle Teleport
 

@@ -5,6 +5,7 @@ var currentPlayersList = null;
 var currentLoadedPrefabList = null;
 var prefabGroups = {};
 var nextPrefabGroupId = 1;
+var ControlKeyInterval = 100
 
 $(document).ready(() => {
     $("i").each( ( ind, img ) => {
@@ -19,7 +20,7 @@ $(document).ready(() => {
 
     function controlClickSetup( element, action, direction )
     {
-        var cclickInterval = 100
+        var cclickInterval = ControlKeyInterval
         var cclickTimeout    
         $("#"+ element).on('mousedown', ( e ) => {
             cclickTimeout = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
@@ -38,7 +39,7 @@ $(document).ready(() => {
     controlClickSetup( 'turnright', 'yaw', 'cw' )
 
     controlClickSetup( 'left', 'move', 'left' )
-    $("#look-at").click( ( e ) => controlClick( 'look-at', null, "look-at", true ))
+    $("#look-at").click( ( e ) => controlClick( 'look-at', null, "look-at" ) )
     controlClickSetup( 'right', 'move', 'right' )
 
     controlClickSetup( 'up', 'move', 'up' )
@@ -49,8 +50,138 @@ $(document).ready(() => {
     controlClickSetup( 'pitchdown', 'pitch', 'cw' )
 
     controlClickSetup( 'spinccw', 'roll', 'ccw' )
-    $("#snap-ground").click( ( e ) => controlClick( 'snap-ground', null, "snap-ground", true ))
+    $("#snap-ground").click( ( e ) => controlClick( 'snap-ground', null, "snap-ground" ) )
     controlClickSetup( 'spincw', 'roll', 'cw' )
+
+    var controlBinds = {}
+    function setControlBinds( key, element, action, direction )
+    {
+        controlBinds[key] = { element: element, action: action, direction: direction }
+    }
+    var menuBinds = {}
+    function setMenuBinds( key, element, callback )
+    {
+        menuBinds[key] = { element: element, callback: callback }
+    }
+
+    setMenuBinds( 'g', 'SelectedPrefabSelect', ( element ) => {
+        $(`#${element} option:selected`).removeAttr('selected')
+            .next('option').attr('selected', 'selected')
+        $(`#${element}`).trigger('change')
+    })
+
+    setMenuBinds( 't', 'SelectedPrefabSelect', ( element ) => {
+        console.log( "index:", $(`#${element} option:selected`).index())
+        let firstSelected = ( $(`#${element} option:selected`).index() == 0 )
+        if ( firstSelected )
+        {
+            $(`#${element} option:selected`).removeAttr('selected')
+            $(`#${element} option`).last().attr('selected', 'selected')
+        } else {
+            $(`#${element} option:selected`).removeAttr('selected')
+                .prev('option').attr('selected', 'selected')
+        }
+        $(`#${element}`).trigger('change')
+    })
+
+    setMenuBinds( '1', 'MagnitudeRotate', ( e ) => {
+        let elemGroup = $(`a.rotateangle`)
+        let activeElem = $(`a.rotateangle.active`)
+        activeElem.removeClass('active')
+        if( activeElem.next().length )
+        {
+            activeElem.next().trigger('click')
+        } else {
+            elemGroup.first().trigger('click')
+        }
+    })
+    setMenuBinds( '2', 'MagnitudeDistance', ( e ) => {
+        let elemGroup = $(`a.distancemag`)
+        let activeElem = $(`a.distancemag.active`)
+        activeElem.removeClass('active')
+        if( activeElem.next().length )
+        {
+            activeElem.next().trigger('click')
+        } else {
+            elemGroup.first().trigger('click')
+        }
+    })
+
+
+
+    setControlBinds( 'ArrowUp', 'forward', 'move', 'forward' )
+    setControlBinds( 'ArrowDown', 'back', 'move', 'back' )
+    setControlBinds( 'ArrowLeft', 'left', 'move', 'left' )
+    setControlBinds( 'ArrowRight', 'right', 'move', 'right' )
+    setControlBinds( 'PageUp', 'up', 'move', 'up' )
+    setControlBinds( 'PageDown','down', 'move', 'down' )
+    setControlBinds( 'shift_ArrowUp', 'pitchdown', 'pitch', 'cw' )
+    setControlBinds( 'shift_ArrowDown', 'pitchup', 'pitch', 'ccw' )
+    setControlBinds( 'shift_ArrowLeft', 'turnleft', 'yaw', 'ccw' )
+    setControlBinds( 'shift_ArrowRight','turnright', 'yaw', 'cw' )
+    setControlBinds( 'shift_PageUp', 'spinccw', 'roll', 'ccw' )
+    setControlBinds( 'shift_PageDown','spincw', 'roll', 'cw' )
+    
+    // Aliases
+    controlBinds['w'] = controlBinds['ArrowUp']
+    controlBinds['s'] = controlBinds['ArrowDown']
+    controlBinds['a'] = controlBinds['ArrowLeft']
+    controlBinds['d'] = controlBinds['ArrowRight']
+    controlBinds['q'] = controlBinds['shift_ArrowLeft']
+    controlBinds['e'] = controlBinds['shift_ArrowRight']
+    controlBinds['r'] = controlBinds['PageUp']
+    controlBinds['f'] = controlBinds['PageDown']
+    controlBinds['z'] = controlBinds['shift_ArrowUp']
+    controlBinds['x'] = controlBinds['shift_ArrowDown']
+    controlBinds['c'] = controlBinds['shift_PageUp']
+    controlBinds['v'] = controlBinds['shift_PageDown']
+
+    var controlKeydown = undefined
+    var controlKeyTimeout = undefined
+    $(document).on('keydown', (e) => {
+        console.log( $(document.activeElement) )
+        let keyPress = e.key
+        if ( e.shiftKey ) keyPress = `shift_${keyPress}`
+        console.log( "keyPress: ", keyPress )
+
+        if ( $("#ControlsNavLi").hasClass('active') )
+        {
+            if ( !!menuBinds[ keyPress ] )
+            {
+                menuBinds[keyPress].callback( menuBinds[keyPress].element )
+            }
+            else if ( !controlKeydown || controlKeydown != keyPress )
+            {
+                if ( !!controlKeyTimeout )
+                {
+                    clearTimeout( controlKeyTimeout )
+                    controlKeyTimeout = undefined
+                }
+                if ( !!controlBinds[ keyPress ] )
+                {
+                    b = controlBinds[ keyPress ]
+                    highlight( $(`#${b.element}`), "20, 255, 20" )
+                    controlKeydown = keyPress
+                    controlKeyTimeout = setInterval( ()=>{ controlClick( b.action, b.direction, b.element )}, ControlKeyInterval )
+                }
+            }
+        }
+
+    }).on('keyup', (e) => {
+        console.log( `keyup: `, e.key )
+        let keyPress = e.key
+        if ( e.shiftKey ) keyPress = `shift_${keyPress}`
+        if( !!controlKeyTimeout )
+        {
+            clearTimeout( controlKeyTimeout )
+            controlKeyTimeout = undefined
+        }
+        if ( !!controlBinds[ keyPress ])
+        {
+            flash( $(`#${controlBinds[ keyPress ].element}`), "20, 255, 20" )
+        }
+        controlKeydown = undefined
+    })
 
     $("#ControlsNav").click( () => {
         $(".topnav").toggleClass("active", false)
@@ -133,7 +264,11 @@ $(document).ready(() => {
 
     $("#DestroySelectedPrefab").click( ( e ) => {
         let optSelected = $("#SelectedPrefabSelect option:selected").val()
-        deletePrefab( optSelected )
+        console.log( optSelected )
+        if ( optSelected !== 'None' )
+        {
+            deletePrefab( optSelected )
+        }
     })
 
     $("#SelectFind").click( ( e ) => {
@@ -148,7 +283,7 @@ $(document).ready(() => {
     $("#SelectablePrefabsAll").change( (e) => {
         console.log( "SelectablePrefabsAll changed")
         let checked = ( $(e.currentTarget).prop('checked') )
-        $(".SelectablePrefabCheckbox").each( (i, item) => {
+        $(".SelectablePrefabCheckbox").filter(":visible").each( (i, item) => {
             $(item).prop('checked', checked )
         })
     })
@@ -1000,7 +1135,11 @@ $(document).ready(() => {
         let prefabId = optSelected.val()
         if ( !!prefabId )
         {
-            if ( `${prefabId}`.includes('group') )
+            if ( `${prefabId}` == 'None' )
+            {
+                selectedPrefabId = undefined
+
+            } else if ( `${prefabId}`.includes('group') )
             {
                 selectedPrefabId = prefabId
                 groupId = prefabId.split( '_' )[1]
@@ -1034,9 +1173,6 @@ $(document).ready(() => {
         let parent = "#FindPrefabs"
         let value = $(e.target).val().trim().toLowerCase()
         let itemsGroup = $(parent + " div#SelectFindItems div.list-group-item")
-        itemsGroup.toggleClass("active", false)
-        itemsGroup.find('input:checkbox').prop('checked', false )
-        $("#SelectablePrefabsAll").prop('checked', false )
         if ( value == '' )
         {
             itemsGroup.show()
@@ -1052,7 +1188,14 @@ $(document).ready(() => {
                 else
                     $(elem).hide()  
             })
+            itemsGroup.find('input:checkbox').each( (e, item) => {
+                if ( $(item).prop("checked") )
+                {
+                    $(item).parent().show()
+                }
+            })
         }
+        $("#SelectablePrefabsAll").prop('checked', false )
     })
 
     $("#ServerSelect #ServerSearch").keyup( (e) => {
@@ -1418,9 +1561,12 @@ $(document).ready(() => {
     $("#CopySelectedPrefab").on('click', (e) => {
         // TODO: this has to support groups
         let optSelected = $("#SelectedPrefabSelect").find("option:selected").val()
-        let player = $("input#PlayerConfigUserId").val()
-        console.log( "copy selected prefab: ", optSelected )
-        wsSendJSON({ 'action': 'clone_prefab', 'player': player, 'hash': optSelected })
+        if ( optSelected !== 'None' )
+        {
+            let player = $("input#PlayerConfigUserId").val()
+            console.log( "copy selected prefab: ", optSelected )
+            wsSendJSON({ 'action': 'clone_prefab', 'player': player, 'hash': optSelected })
+        }
     })
 
     // Add some default websockets handlers
@@ -1905,24 +2051,19 @@ function unhighlight( elem, color ){
 
 var rotations = [ 'yaw', 'roll', 'pitch' ]
 var standalones = [ 'look-at', 'snap-ground']
-
-function controlClick( action, direction, elem, flash_on_click ){
-    buttonHandler = ( message ) => {
-        console.log( "handler: ", message )
-        if ( message.result == 'OK' )
-        {
-            if ( flash_on_click ) {
-                "flask OK: "+ message.data.element
-                flash( $("#"+message.data.element ), "20, 255, 20")
-            }
-        } else {
-            flash( $("#"+message.data.element ), "255, 20, 20")
-        }
+var buttonHandler = ( message ) => {
+    console.log( "handler: ", message )
+    if ( message.result != 'OK' )
+    {
+        flash( $("#"+message.data.element ), "255, 20, 20")
     }
-    wsAddHandler( 'rotate', buttonHandler )
-    wsAddHandler( 'move', buttonHandler )
-    wsAddHandler( 'look-at', buttonHandler )
-    wsAddHandler( 'snap-ground', buttonHandler )
+}
+wsAddHandler( 'rotate', buttonHandler )
+wsAddHandler( 'move', buttonHandler )
+wsAddHandler( 'look-at', buttonHandler )
+wsAddHandler( 'snap-ground', buttonHandler )
+
+function controlClick( action, direction, elem ){
     dataSet = {}
     console.log( "control click "+ selectedPrefabId +" "+ action +" "+ direction +" "+ elem )
     if (!!selectedPrefabId)

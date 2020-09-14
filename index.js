@@ -26,6 +26,7 @@ var subscribedSubscriptions = {}
 
 var prefabGroups = {}
 var selectedPrefabGroup = undefined
+var selectedPrefabId = undefined
 
 const rotationEulerOrder = 'YXZ'
 const translationDirs = {
@@ -42,6 +43,13 @@ const port = Number(process.env.PORT) || 21129
 const useSavedPassword = ( process.env.USE_SAVED_PASS === undefined )
     ? true
     : ( process.env.USE_SAVED_PASS == 1 )
+
+// These items should never be saved or cloned
+const blacklistItems = {
+    '0' : 'Respawn Point',
+    '37940' : 'Discovery Landmark',
+    '49582': 'VR Player Character New'
+}
 
 // Websocket Service
 const ws = require('ws')
@@ -841,11 +849,12 @@ wsAddHandler( 'move', async ( data ) => {
         if ( !!prefabGroups[groupId].tjsGroup )
         {
             let tjsGroup = prefabGroups[ groupId ].tjsGroup
+            let boundingBox = prefabGroups[ groupId ].boundingBox
             // Move virtual object by the specified amount
-            tjsGroup.translateX( translationDirs[ mdirection ][0] * wsMap.distanceMag )
-            tjsGroup.translateY( translationDirs[ mdirection ][1] * wsMap.distanceMag )
-            tjsGroup.translateZ( translationDirs[ mdirection ][2] * wsMap.distanceMag )
-            tjsGroup.updateMatrixWorld()
+            boundingBox.translateX( translationDirs[ mdirection ][0] * wsMap.distanceMag )
+            boundingBox.translateY( translationDirs[ mdirection ][1] * wsMap.distanceMag )
+            boundingBox.translateZ( translationDirs[ mdirection ][2] * wsMap.distanceMag )
+            boundingBox.updateMatrixWorld()
             for ( let i = 0; i < groupItems.length; i++ )
             {
                 let itemId = groupItems[i].Identifier
@@ -861,7 +870,11 @@ wsAddHandler( 'move', async ( data ) => {
         }
 
     } else if ( !!data.selectedPrefabId ) {
-        await attConsole.send(`select ${data.selectedPrefabId}`)
+        if ( !selectedPrefabId || selectedPrefabId !== data.selectedPrefabId )
+        {
+            selectedPrefabId = data.selectedPrefabId
+            await attConsole.send(`select ${data.selectedPrefabId}`)
+        }
         await attConsole.send( command )
     } else {
         // just move the currently selected object
@@ -884,7 +897,6 @@ wsAddHandler( 'rotate', async ( data ) => {
         let groupId = data.selectedPrefabId.split('_')[1]
         let groupItems = prefabGroups[ groupId ].items
 
-        let eulerRotation = new THREE.Euler( 0, 0, 0, rotationEulerOrder )
         if ( !!prefabGroups[groupId].tjsGroup )
         {
             let tjsGroup = prefabGroups[ groupId ].tjsGroup
@@ -950,18 +962,89 @@ wsAddHandler('look-at', async( data ) => {
 })
 
 wsAddHandler('snap-ground', async( data ) => {
+    console.log( `command: select snap-ground ${data.selectedPrefabId}` )
     if ( data.selectedPrefabId.includes("group") )
     {
         console.log("Snap a group of prefabs to the ground (lowest coordinate): ", data )
-        return
+        let groupId = data.selectedPrefabId.split('_')[1]
+        let groupItems = prefabGroups[ groupId ].items
+       
+        if ( !!prefabGroups[groupId].tjsGroup )
+        {
+            let minY = undefined
+            let lowestObj = undefined
+            let lowestObjPos = undefined
+            let tjsGroup = prefabGroups[ groupId ].tjsGroup
+            let boundingBox = prefabGroups[ groupId ].boundingBox
+
+            attConsole.onMessage = async ( message ) =>
+            {
+                console.log( message )
+                switch( message.data.Command.FullName )
+                {
+                    case "select.snap-ground":
+                        // Wait for teh lowest item to be snap-grounded
+                        await attConsole.send( `select get ${lowestObj}`)
+                    break
+                    case "select.get":
+                        if ( !!message.data.Result )
+                        {
+                            console.log( "select get: ", message.data.Result )
+                            // Get the offset between the lowest obj original pos and new
+                            let item = message.data.Result
+                            let yOffset = lowestObjPos.y - item.Position[1]
+                            console.log( "lowest object offset by: ", yOffset)
+                            // Apply the offset to the whole group of prefabs
+                            boundingBox.translateY( -1 * yOffset )
+                            boundingBox.updateMatrixWorld()
+                            for ( let i = 0; i < groupItems.length; i++ )
+                            {
+                                let itemId = groupItems[i].Identifier
+                                let tjsItem = tjsGroup.children.find( x => x.name == itemId )
+                                let newPos = new THREE.Vector3
+                                tjsItem.getWorldPosition( newPos )
+                                await attConsole.send(`select ${itemId}`)
+                                await attConsole.send(`select move exact ${newPos.x},${newPos.y},${newPos.z}`)
+                            }
+                            wsSendJSON({ result: 'OK', data: data })                       
+                        } else {
+                            wsSendJSON({ result: 'Fail', data: data })
+                        }
+                    break
+                }
+            }
+        
+            for( let i = 0; i < groupItems.length; i++)
+            {
+                let itemId = groupItems[i].Identifier
+                let tjsItem = tjsGroup.children.find( x => x.name == itemId )
+                let itemPos = new THREE.Vector3
+                tjsItem.getWorldPosition( itemPos )
+                if ( minY === undefined || itemPos.y < minY )
+                {
+                    minY = itemPos.y
+                    lowestObj = itemId
+                    lowestObjPos = itemPos
+                }
+            }        
+            // Select the lowest object, snap it to the ground
+            await attConsole.send( `select ${lowestObj}` )
+            await attConsole.send( `select snap-ground`)
+        }
+    } else {
+        attConsole.onMessage = ( message ) =>
+        {
+            console.log( message )
+        }
+    
+        command = `select snap-ground`
+        console.log( command )
+        if ( !!data.selectedPrefabId ) {
+            await attConsole.send( "select "+ data.selectedPrefabId )
+        }
+        await attConsole.send( command )
+        wsSendJSON({ result: 'OK', data: data })
     }
-    command = `select snap-ground`
-    console.log( command )
-    if ( !!data.selectedPrefabId ) {
-        await attConsole.send( "select "+ data.selectedPrefabId )
-    }
-    await attConsole.send( command )
-    wsSendJSON({ result: 'OK', data: data })
 })
 
 // SaveLoad websocket controls
@@ -972,13 +1055,6 @@ wsAddHandler('select_find_save', async( data ) => {
     let prefabCount = 0
     let prefabsScanned = 0
     data.scanitems = []
-
-    // These items should never be scanned
-    let blacklistItems = {
-        '0' : 'Respawn Point',
-        '37940' : 'Discovery Landmark',
-        '49582': 'VR Player Character New'
-    }
 
     attSaveLoad.onMessage = ( message ) => {
         // Message handlers for the save system
@@ -1098,8 +1174,11 @@ wsAddHandler( 'select_prefab_group', async( data ) => {
                 child.applyMatrix4( new THREE.Matrix4().makeTranslation( -center_x, -center_y, -center_z ))
             })
             tjsGroup.updateMatrixWorld()
+            let boundingBox = new THREE.Object3D()
+            boundingBox.add( tjsGroup )
             prefabGroups[ data.id ].tjsGroup = tjsGroup
-            console.log( "3D buffer geometry ready", tjsGroup )
+            prefabGroups[ data.id ].boundingBox = boundingBox
+            console.log( "3D buffer geometry ready", boundingBox )
             wsSendJSON({'result': 'OK', data: data })
         }
     }
@@ -1143,20 +1222,38 @@ wsAddHandler( 'clone_prefab', async( data ) => {
         console.log("Clone a group of prefabs: ", data )
         let groupId = data.hash.split('_')[1]
         let groupItems = prefabGroups[ groupId ].items
-
+        console.log("selected group: ", groupItems )
         // Just pass the new items back to UI, which will handle the re-selection process
         // and setup the UI components correctly
         let newGroup = []
         let ind = 0
-        newGroup[0] = {}
+        let ngi = 0
+        let nextItem = () => {
+            ind++
+            if ( ind < groupItems.length )
+            {
+                selectItemToString( ind )
+            } else {
+                // Send back the new group
+                console.log( "returning new group: ", newGroup )
+                wsSendJSON({ 'result': 'OK', data: data, group: newGroup })
+            }
+        }
         attConsole.onMessage = async( message ) => {
             console.log( "clone_prefab group onMessage: ", message )
             switch( message.data.Command.FullName )
             {
                 case "select.get":
-                    newGroup[ind].pos = message.data.Result.Position
-                    newGroup[ind].rot = message.data.Result.Rotation
-                    await attConsole.send(`select tostring`)
+                    if ( blacklistItems[ message.data.Result.PrefabHash ])
+                    {
+                        console.log( "Item is in blacklist, not cloning:", message.data.Result )
+                        nextItem()
+                    } else {
+                        newGroup[ngi] = {}
+                        newGroup[ngi].pos = message.data.Result.Position
+                        newGroup[ngi].rot = message.data.Result.Rotation
+                        await attConsole.send(`select tostring`)
+                    }
                 break
 
                 case "select.tostring":
@@ -1166,30 +1263,24 @@ wsAddHandler( 'clone_prefab', async( data ) => {
 
                 case "spawn.string":
                     let prefabId = message.data.Result[0].Identifier
-                    newGroup[ind].Identifier = prefabId
-                    newGroup[ind].Name = message.data.Result[0].Name
-                    let pos = newGroup[ind].pos
-                    let rot = newGroup[ind].rot
+                    newGroup[ngi].Identifier = prefabId
+                    newGroup[ngi].Name = message.data.Result[0].Name
+                    let pos = newGroup[ngi].pos
+                    let rot = newGroup[ngi].rot
                     await attConsole.send(`select ${prefabId}`)
                     await attConsole.send(`select rotate exact ${rot[0]},${rot[1]},${rot[2]}`)
                     await attConsole.send(`select move exact ${pos[0]},${pos[1]},${pos[2]}`)
                 break
 
                 case "select move.exact":
-                    ind++
-                    if ( ind < groupItems.length )
-                    {
-                        newGroup[ind] = {}
-                        selectItemToString( ind )
-                    } else {
-                        // Send back the new group
-                        wsSendJSON({ 'result': 'OK', data: data, group: newGroup })
-                    }
+                    ngi++
+                    nextItem()
                 break
             }
         }
         let selectItemToString = async ( ind ) => {
             let item = groupItems[ind]
+            console.log( "getting item: ", ind, item )
             await attConsole.send(`select ${item.Identifier}`)
             await attConsole.send(`select get ${item.Identifier}`)
         }
@@ -1202,9 +1293,15 @@ wsAddHandler( 'clone_prefab', async( data ) => {
             switch( message.data.Command.FullName )
             {
                 case "select.get":
-                    newItem.pos = message.data.Result.Position
-                    newItem.rot = message.data.Result.Rotation
-                    await attConsole.send('select tostring')
+                    if ( blacklistItems[ message.data.Result.PrefabHash ] )
+                    {
+                        console.log( "Item is in blacklist: ", data )
+                        wsSendJSON({ 'result': 'Fail', data: data })
+                    } else {
+                        newItem.pos = message.data.Result.Position
+                        newItem.rot = message.data.Result.Rotation
+                        await attConsole.send('select tostring')
+                    }
                 break
                 case "select.tostring":
                     // Re-spawn from the string
@@ -1465,7 +1562,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     let player = ( !!req.body.player )
                         ? req.body.player
                         : userId
-                    command = `player checkstat ${player} ${stat}`
+                    command = `player check-stat ${player} ${stat}`
                     console.log( command )
                     await attConsole.send( command )
                 return;
@@ -1484,7 +1581,7 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                                 if ( statVal <= 0 ) statVal = 0.1
                             break
                         }
-                        command = `player setstat ${player} ${statName} ${statVal}`
+                        command = `player set-stat ${player} ${statName} ${statVal}`
                         console.log( command )
                         await attConsole.send( command )
                     } else {
@@ -1496,12 +1593,8 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     let gmplayer = ( !!req.body.player )
                         ? req.body.player
                         : userId
-                    if ( req.body.value == "true" )
-                    {
-                        command = "player godmodeon "+ gmplayer
-                    } else {
-                        command = "player godmodeoff "+ gmplayer
-                    }
+                    let state = (req.body.value == "true")
+                    command = `player god-mode ${gmplayer} ${state}`
                     console.log( command )
                     await attConsole.send( command )
                 return
