@@ -5,6 +5,33 @@ div.Controls.w-100.pt-2.pb-2
 
     div.row
         span.px-2.py-1
+            b Set Player Home
+    div.row
+        select#PlayerHomeSelect.form-control.w-100
+            option(value="PlayerLoc" selected) Player's Current Location
+            option(value="MyLoc") My Current Location
+            option(value="Exact") Exact
+            option(value="Respawn") Respawn Point (Reset)
+    div#PlayerHomeExact.w-100.hidden
+        div.row.pt-1.w-100
+            div.col-1.pt-2
+                b X
+            div.col-3.px-1
+                input#PlayerHomeX.form-control(type="text" placeholder="0.0")
+            div.col-1.pt-2
+                b Y
+            div.col-3.px-1
+                input#PlayerHomeY.form-control(type="text" placeholder="0.0")
+            div.col-1.pt-2
+                b Z
+            div.col-3.px-1
+                input#PlayerHomeZ.form-control(type="text" placeholder="0.0")
+
+    div.pt-1.pb-2.row
+        a#PlayerSetHomeButton.ControlsMini.col.text-center.align-middle Set Home Location
+
+    div.row
+        span.px-2.py-1
             b Select Destination
 
     div.row

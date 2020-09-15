@@ -764,6 +764,36 @@ $(document).ready(() => {
         $(e.target).toggleClass("active")
     })
 
+    $("#PlayerConfigTeleport select#PlayerHomeSelect").on('change', (e) => {
+        let parent = selectedConfigForm
+        let optSelected = $(e.target).find("option:selected").val()
+        console.log( optSelected )
+        if ( optSelected == "Exact" )
+        {
+            $(parent + " #PlayerHomeExact").show()
+        } else {
+            $(parent + " #PlayerHomeExact").hide()
+        }
+    })
+
+    $("#PlayerConfigTeleport a#PlayerSetHomeButton").click( (e) => {
+        let parent = selectedConfigForm
+        let optSelected = $(parent + " select#PlayerHomeSelect").find("option:selected")
+        let position = {
+            x: $(parent +" #PlayerHomeX").val(),
+            y: $(parent +" #PlayerHomeY").val(),
+            z: $(parent +" #PlayerHomeZ").val()
+        }
+        let player = selectedPlayerId
+        let destination = optSelected.val()
+        let data = {
+            'position' : position,
+            'player' : player,
+            'destination' : destination
+        }
+        wsSendJSON({ 'action': 'player_set_home', data: data })
+    })
+
     $("#PlayerConfigTeleport a#TeleportToDestination").click(( e ) =>{
         let parent = selectedConfigForm
         let optSelected = $(parent + " select#TeleportDestinations").find('option:selected')
@@ -1705,6 +1735,13 @@ $(document).ready(() => {
         console.log( message )
         let color = ( message.result == 'OK' ) ? "20, 255, 20" : "255, 20, 20"
         flash( $("#SelectedPrefabSelect"), color )
+    })
+
+    wsAddHandler('player_set_home', ( message ) => {
+        let parent = selectedConfigForm
+        console.log( message )
+        let color = ( message.result == 'OK' ) ? "20, 255, 20" : "255, 20, 20"
+        flash( $(parent +" #PlayerSetHomeButton"), color )
     })
 
 })

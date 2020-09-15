@@ -1327,6 +1327,60 @@ wsAddHandler( 'clone_prefab', async( data ) => {
 })
 
 
+wsAddHandler( 'player_set_home', async (data) => {
+    console.log( `player_set_home`, data )
+    let locData = data.data
+    let player = locData.player
+    let destination = locData.destination
+    let pos = locData.position
+
+
+    attConsole.onMessage = async ( message ) => {
+        console.log( `player_set_home message: `, message )
+        if ( !!message.data.Command )
+        {
+            switch( message.data.Command.FullName )
+            {
+                case "player.detailed":
+                    let posString = message.data.Result.Position.replace(/[()\ ]/g, '')
+                    let npos = posString.split(',')
+                    console.log( `new player home position: ${player} `, npos )
+                    await attConsole.send(`player set-home ${player} "${npos[0]},${npos[1]},${npos[2]}"`)
+                break
+
+                case "player.set-home":
+                    console.log( "player home set: ", message )
+                    wsSendJSON({'result': 'OK', data: data })
+                break
+            }
+        }
+    }
+
+    switch( destination )
+    {
+        case "PlayerLoc":
+            // Retrieve the current location of the player and use this value
+            await attConsole.send(`player detailed ${player}`)
+        break
+
+        case "MyLoc":
+            // Retrieve my location and use this value
+            await attConsole.send(`player detailed ${attSession.getUsername()}`)
+        break
+
+        case "Respawn":
+            // Reset the value by specifying no location
+            await attConsole.send(`player set-home ${player}`)
+        break
+
+        case "Exact":
+            // Use the specified location
+            await attConsole.send(`player set-home ${player} ${pos.x},${pos.y},${pos.z}`)
+        break
+    }
+})
+
+
 // TODO: replace these with websocket handlers
 server.post('/ajax', asyncMid( async( req, res, next ) => {
     console.log( req.body )
