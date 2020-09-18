@@ -1596,6 +1596,7 @@ $(document).ready(() => {
             let player = $("input#PlayerConfigUserId").val()
             console.log( "copy selected prefab: ", optSelected )
             wsSendJSON({ 'action': 'clone_prefab', 'player': player, 'hash': optSelected })
+            spinnerReplace( "CopySelectedPrefab" )
         }
     })
 
@@ -1729,6 +1730,7 @@ $(document).ready(() => {
                 selectPrefabById( "SelectedPrefabSelect", hash, name )
             }
         }
+        spinnerRevert( "CopySelectedPrefab" )
     })
 
     wsAddHandler('select_prefab_group', ( message ) => {
@@ -1756,16 +1758,40 @@ function delSpinner( e, ihtml )
     $(e.target).html(ihtml)
 }
 
+let sprActive = false
+let sprCurrentHtml = ''
+function spinnerReplace( elem )
+{
+    if ( !sprActive )
+    {
+        sprCurrentHtml = $("#"+elem).html()
+        $("#"+elem).html( '<i class="fa fa-spinner fa-spin" />')
+        $("#"+elem).addClass('disabled')
+        sprActive = true
+    }
+}
+
+function spinnerRevert( elem )
+{
+    $("#"+elem).html( sprCurrentHtml )
+    $("#"+elem).removeClass('disabled')
+    sprActive = false
+}
+
 function deletePrefab( id ) {
     console.log( "delete prefab: ", id )
+    wsAddHandler('delete_prefab_group', ( message ) => {
+        if ( message.result == 'OK' )
+        {
+            $("#SelectedPrefabSelect option:selected").remove()
+            let newSelected = $("#SelectedPrefabSelect option:last").val()
+            $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
+        }
+    })
     if ( `${id}`.includes('group') )
     {
         let groupId = `${id}`.split('_')[1]
         wsSendJSON( { action: 'delete_prefab_group', id: groupId, group: prefabGroups[groupId] } )
-
-        $("#SelectedPrefabSelect option:selected").remove()
-        let newSelected = $("#SelectedPrefabSelect option:last").val()
-        $("#SelectedPrefabSelect").val( newSelected ).trigger('change')
     } else {
         dataSet = { 'selectedPrefabId': id }
         dataSet.action = 'destroy_prefab'

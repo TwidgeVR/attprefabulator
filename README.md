@@ -11,6 +11,14 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.7.0 - Snap groups to ground! Fixed issue with accidentally deleting yourself or other protected prefabs as part of a group. Cloning regular objects works now!.  Cloned objects will also spawn offset by 1 meter in the 'up' direction for visibility. Cloning now uses the save/load connection to prevent interruption since it can take some time on large groups.
+
+- v1.6.5 - Added the community storage multiplier
+
+- v1.6.4 - Added the new player set-home command, and options to set it to player location, user location, an exact position, or respawn point (reset)
+
+- v1.6.3 - Added preliminary version of keyboard support for moving prefabs
+
 - v1.6.2 - Oops! Hotfix for loading of spawnables and subscriptions
 
 - v1.6.1 - Added prefab and group cloning! Also time of day to server settings, and title tags to all icon-only controls.

@@ -1194,8 +1194,34 @@ wsAddHandler( 'select_prefab_group', async( data ) => {
 
 wsAddHandler( 'delete_prefab_group', async( data ) => {
     console.log( "Deleting a prefab group: ", data.id, data.group )
-    attConsole.onMessage = ( message ) => {
+    let itemsToDelete = []
+    let scanned = 0
+    attSaveLoad.onMessage = async ( message ) => {
         console.log( `delete prefab event: `, message )
+        if ( !!message.data.Command.FullName )
+        {
+            switch( message.data.Command.FullName )
+            {
+                case "select.get":
+                    scanned++
+                    if ( !blacklistItems[ message.data.Result.PrefabHash ] )
+                    {
+                        itemsToDelete.push( message.data.Result )
+                    }
+                    console.log( `scanned: ${scanned}, total: ${itemsToDelete.length}`)
+                    if ( scanned == group.items.length )
+                    {
+                        // Finished scanning, delete the remainder
+                        for( let i = 0; i < itemsToDelete.length; i++ )
+                        {
+                            await attSaveLoad.send(`select ${itemsToDelete[i].Identifier}`)
+                            await attSaveLoad.send(`select destroy`)
+                        }
+                        wsSendJSON({'result': 'OK', data: data })
+                    }
+                break
+            }
+        }
     }
     if ( prefabGroups[ data.id ] )
     {
@@ -1203,8 +1229,7 @@ wsAddHandler( 'delete_prefab_group', async( data ) => {
         for( let i = 0; i < group.items.length; i++ )
         {
             let item = group.items[i]
-            await attConsole.send(`select ${item.Identifier}`)
-            await attConsole.send(`select destroy`)
+            await attSaveLoad.send(`select get ${item.Identifier}`)
         }
         delete prefabGroups[ data.id ]
     }
@@ -1239,7 +1264,7 @@ wsAddHandler( 'clone_prefab', async( data ) => {
                 wsSendJSON({ 'result': 'OK', data: data, group: newGroup })
             }
         }
-        attConsole.onMessage = async( message ) => {
+        attSaveLoad.onMessage = async( message ) => {
             console.log( "clone_prefab group onMessage: ", message )
             switch( message.data.Command.FullName )
             {
@@ -1252,13 +1277,13 @@ wsAddHandler( 'clone_prefab', async( data ) => {
                         newGroup[ngi] = {}
                         newGroup[ngi].pos = message.data.Result.Position
                         newGroup[ngi].rot = message.data.Result.Rotation
-                        await attConsole.send(`select tostring`)
+                        await attSaveLoad.send(`select tostring`)
                     }
                 break
 
                 case "select.tostring":
                     let prefabString = message.data.ResultString
-                    await attConsole.send(`spawn string ${player} ${prefabString}`)
+                    await attSaveLoad.send(`spawn string ${player} ${prefabString}`)
                 break
 
                 case "spawn.string":
@@ -1267,9 +1292,9 @@ wsAddHandler( 'clone_prefab', async( data ) => {
                     newGroup[ngi].Name = message.data.Result[0].Name
                     let pos = newGroup[ngi].pos
                     let rot = newGroup[ngi].rot
-                    await attConsole.send(`select ${prefabId}`)
-                    await attConsole.send(`select rotate exact ${rot[0]},${rot[1]},${rot[2]}`)
-                    await attConsole.send(`select move exact ${pos[0]},${pos[1]},${pos[2]}`)
+                    await attSaveLoad.send(`select ${prefabId}`)
+                    await attSaveLoad.send(`select rotate exact ${rot[0]},${rot[1]},${rot[2]}`)
+                    await attSaveLoad.send(`select move exact ${pos[0]},${pos[1]+1},${pos[2]}`)
                 break
 
                 case "select move.exact":
@@ -1281,14 +1306,14 @@ wsAddHandler( 'clone_prefab', async( data ) => {
         let selectItemToString = async ( ind ) => {
             let item = groupItems[ind]
             console.log( "getting item: ", ind, item )
-            await attConsole.send(`select ${item.Identifier}`)
-            await attConsole.send(`select get ${item.Identifier}`)
+            await attSaveLoad.send(`select ${item.Identifier}`)
+            await attSaveLoad.send(`select get ${item.Identifier}`)
         }
         selectItemToString( ind )
 
     } else {
-        let newItem
-        attConsole.onMessage = async ( message ) => {
+        let newItem = {}
+        attSaveLoad.onMessage = async ( message ) => {
             console.log( "clone_prefab onMessage: ", message )
             switch( message.data.Command.FullName )
             {
@@ -1300,29 +1325,32 @@ wsAddHandler( 'clone_prefab', async( data ) => {
                     } else {
                         newItem.pos = message.data.Result.Position
                         newItem.rot = message.data.Result.Rotation
-                        await attConsole.send('select tostring')
+                        await attSaveLoad.send('select tostring')
                     }
                 break
                 case "select.tostring":
                     // Re-spawn from the string
                     console.log( "select.tostring response: ", message.data.ResultString )
-                    await attConsole.send(`spawn string ${player} ${message.data.ResultString}`)
+                    await attSaveLoad.send(`spawn string ${player} ${message.data.ResultString}`)
                 break
 
                 case "spawn.string":
                     // Collect the ID and name and return it to the UI
+                    console.log( "moving new item to: ", newItem )
                     let hash = message.data.Result[0].Identifier
                     let pos = newItem.pos
                     let rot = newItem.rot
-                    await attConsole.send(`select ${hash}`)
-                    await attConsole.send(`select rotate exact ${rot[0]},${rot[1]}.${rot[2]}`)
-                    await attConsole.send(`select move exact ${pos[0]},${pos[1]}.${pos[2]}`)
+                    await attSaveLoad.send(`select ${hash}`)
+                    console.log( `select rotate exact ${rot[0]},${rot[1]}.${rot[2]}` )
+                    console.log( `select move exact ${pos[0]},${pos[1]}.${pos[2]}` )
+                    await attSaveLoad.send(`select rotate exact ${rot[0]},${rot[1]},${rot[2]}`)
+                    await attSaveLoad.send(`select move exact ${pos[0]},${pos[1]+1},${pos[2]}`)
                     wsSendJSON( { result: 'OK', data: data, prefab: message.data.Result[0] }  )
                 break
             }
         }
-        await attConsole.send( `select ${data.hash}` )
-        await attConsole.send( `select get ${data.hash}`)
+        await attSaveLoad.send( `select ${data.hash}` )
+        await attSaveLoad.send( `select get ${data.hash}`)
     }
 })
 
