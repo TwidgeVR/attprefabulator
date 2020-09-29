@@ -1,0 +1,43 @@
+div#HandCameraConfig.Message(class="container hidden")
+    div.ContentRow.w-100.row
+        div#ExperimentalWarning.w-100.text-center * EXPERIMENTAL FEATURE *
+    div.ContentRow.w-100.row.p-2
+        div#ExperimentalWarning This tool will prevent other Prefabulator commands from working properly, and may disrupt other players using dash commands.
+    div.ContentRow.w-100.row
+        div#HandCameraMessages.w-100(style="color: red")
+
+    div#HandCameraOn.ContentRow.w-100(class="row")
+        a#HandCameraOn.HandCameraToggle.ControlsMini.col.text-center.align-middle Camera Follow On
+    div#HandCameraOff.ContentRow.w-100.hidden(class="row")
+        a#HandCameraOff.HandCameraToggle.ControlsMini.col.text-center.align-middle Camera Follow Off
+    div.ContentRow.w-100.mt-3.ml-auto.mr-auto.row
+        div.col
+            div.row.w-100
+                span.font-weight-bold Orbit Position:
+                span#HandCameraOrbitAngleValue.pl-2 0
+            div.row.w-100
+                span.font-weight-bold.pr-2 Lock:
+                a#HandCameraOrbitLock
+                    i#HandCameraOrbitLockToggle.Toggle.fas.fa-toggle-off
+            div.row.mt-2
+                div#HandCameraOrbitAngle.w-100
+        div.col
+            div.row.w-100.text-center
+                span.font-weight-bold Height:
+                span#HandCameraHeightValue.pl-2 1.5               
+            div.row.w-100.mt-2.pl-5
+                div#HandCameraHeight(style="height: 300px" )
+    div.ContentRow.w-100.row.mt-2
+        div.col
+            div.row.w-100.mt-2
+                span.font-weight-bold Max Distance:
+                span#HandCameraDistanceValue.pl-2 3
+            div.row.w-100
+                span.font-weight-bold.pr-2 Lock:
+                a#HandCameraRadiusLock
+                    i#HandCameraRadiusLockToggle.Toggle.fas.fa-toggle-off
+            div.row.w-100.mt-2
+                div#HandCameraDistance.ml-auto-mr-auto(style="width: 300px")
+
+            
+

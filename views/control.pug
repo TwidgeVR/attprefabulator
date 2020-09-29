@@ -42,6 +42,7 @@ block layout-content
     input#ConfigurePlayersActiveForm(type="hidden")
     include PlayerConfig.pug
     include ConfigurePlayers.pug
+    include HandCameraConfig.pug
     
     footer(class="footer mt-auto no-gutters py-2 row")
         div.ControlsMini.col-auto.mr-auto.px-4
@@ -69,6 +70,9 @@ block layout-content
                 span.col.px-4.text-right.align-bottom
                     b #{serverUsername}
             div.row
+                span.col-auto.text-right.align-bottom.px-2.ml-auto
+                    a#HandCameraNav.topnav
+                        i.p-2(class="fas fa-camera" title="Hand Camera Control")
                 span.col-auto.text-right.align-bottom.px-2.ml-auto
                     a#PlayerConfigNav(class="topnav")
                         input#PlayerConfigUserId(type="hidden" value=serverUserId)

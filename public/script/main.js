@@ -458,6 +458,114 @@ $(document).ready(() => {
         $("#ConfigurePlayersDialog").show()
     })
 
+    $("#HandCameraNav").click( ( e ) => {
+        $(".topnav").toggleClass("active", false)
+        $("#HandCameraNav").toggleClass("active")
+        $(".Message").hide()
+        $("#HandCameraConfig").show()
+    })
+
+    wsAddHandler('hand_camera_toggle', (message) => {
+        console.log( 'hand_camera_toggle', message )
+        if ( !!message.message )
+        {
+            $("#HandCameraMessages").text( message.message )
+        } else {
+            $("#HandCameraMessages").text('')
+        }
+
+        if ( message.result == 'OK' )
+        {
+            flash( ".HandCameraToggle", "20, 255,20")
+        } else {
+            $("div#HandCameraOff").hide()
+            $("div#HandCameraOn").show()
+            flash( ".HandCameraToggle", "255, 20, 20")
+        }
+    })
+
+    $("#HandCameraOn").click( (e) => {
+        wsSendJSON({ action: 'hand_camera_toggle', state: true })
+        $("div#HandCameraOn").hide()
+        $("div#HandCameraOff").show()
+    })
+    $("#HandCameraOff").click( (e) => {
+        wsSendJSON({ action: 'hand_camera_toggle', state: false })
+        $("div#HandCameraOff").hide()
+        $("div#HandCameraOn").show()
+    })
+
+    $("#HandCameraOrbitAngle").roundSlider({
+        radius: 150,
+        width: 15,
+        min: 0, max: 360, step: 1,
+        startAngle: 90,
+        svgMode: true,
+        borderWidth: 1, borderColor: "#c5c5c5",
+        handleSize: "15, 65",
+        showTooltip: false,
+        start: (e) => {
+            console.log( "start drag: ", e )
+        },
+        drag: (e) => {
+            $("#HandCameraOrbitAngleValue").html( e.value )
+            wsSendJSON({ action: "hand_camera_pose", attribute: "orbitAngle", value: e.value })
+        }
+    })
+
+    $("#HandCameraHeight").slider({
+        orientation: "vertical",
+        min: 0,
+        max: 6,
+        value: 1.5,
+        step: 0.125,
+        slide: (e, ui) => {
+            console.log( "cam height change: ", ui.value )
+            $("#HandCameraHeightValue").html( ui.value )
+            wsSendJSON({ action: "hand_camera_pose", attribute: "height", value: ui.value })
+        }
+    })
+
+    $("#HandCameraDistance").slider({
+        min: 0.5,
+        max: 6,
+        value: 3,
+        step: 0.125,
+        slide: ( e, ui ) => {
+            console.log( "cam distance change: ", ui.value )
+            $("#HandCameraDistanceValue").html( ui.value )
+            wsSendJSON({ action: "hand_camera_pose", attribute: "radius", value: ui.value })
+        }
+    })
+
+    $("#HandCameraOrbitLock").click( (e) =>{
+        let toggle = $("#HandCameraOrbitLockToggle")
+        let value = false
+        if ( toggle.hasClass('fa-toggle-off'))
+        {
+            toggle.removeClass('fa-toggle-off').addClass('fa-toggle-on')
+            value = true
+        } else {
+            toggle.removeClass('fa-toggle-on').addClass('fa-toggle-off')
+            value = false
+        }
+        wsSendJSON({ action: "hand_camera_pose", attribute: "orbitLock", value: value })
+    })
+
+    $("#HandCameraRadiusLock").click( (e) =>{
+        let toggle = $("#HandCameraRadiusLockToggle")
+        let value = false
+        if ( toggle.hasClass('fa-toggle-off'))
+        {
+            toggle.removeClass('fa-toggle-off').addClass('fa-toggle-on')
+            value = true
+        } else {
+            toggle.removeClass('fa-toggle-on').addClass('fa-toggle-off')
+            value = false
+        }
+        wsSendJSON({ action: "hand_camera_pose", attribute: "radiusLock", value: value })
+    })
+
     $("#PlayerConfigNav").click( ( e ) => {
         selectedConfigForm = "#PlayerConfig"
         selectedPlayerName = $("input#PlayerConfigUsername").val()
@@ -791,6 +899,7 @@ $(document).ready(() => {
             'player' : player,
             'destination' : destination
         }
+        console.log( "player_set_home: ", data )
         wsSendJSON({ 'action': 'player_set_home', data: data })
     })
 

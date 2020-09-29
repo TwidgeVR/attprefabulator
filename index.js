@@ -963,7 +963,7 @@ wsAddHandler('look-at', async( data ) => {
 
 wsAddHandler('snap-ground', async( data ) => {
     console.log( `command: select snap-ground ${data.selectedPrefabId}` )
-    if ( data.selectedPrefabId.includes("group") )
+    if ( !!data.selectedPrefabId && data.selectedPrefabId.includes("group") )
     {
         console.log("Snap a group of prefabs to the ground (lowest coordinate): ", data )
         let groupId = data.selectedPrefabId.split('_')[1]
@@ -1360,7 +1360,11 @@ wsAddHandler( 'player_set_home', async (data) => {
     let locData = data.data
     let player = locData.player
     let destination = locData.destination
-    let pos = locData.position
+    let pos =  {
+        x: ( !!locData.position.x ) ? locData.position.x : '0',
+        y: ( !!locData.position.y ) ? locData.position.y : '0',
+        z: ( !!locData.position.z ) ? locData.position.z : '0'
+    }
 
 
     attConsole.onMessage = async ( message ) => {
@@ -1403,8 +1407,251 @@ wsAddHandler( 'player_set_home', async (data) => {
 
         case "Exact":
             // Use the specified location
-            await attConsole.send(`player set-home ${player} ${pos.x},${pos.y},${pos.z}`)
+            console.log(`player set-home ${player} ${pos.x},${pos.y},${pos.z}`)
+            await attConsole.send(`player set-home ${player} "${pos.x},${pos.y},${pos.z}"`)
         break
+    }
+})
+
+var handCameraState = false
+var handCameraPose = {
+    radius : 3,
+    radiusLock: false,
+    height : 1.5,
+    orbitAngle: 0,
+    orbitLock: false,
+    updateRate: 33
+}
+
+wsAddHandler( 'hand_camera_toggle', async( data ) => {
+    // Toggle On
+    if ( !!data.state ) {
+        handCameraState = true
+        // Find camera object who's parent is the prefab user
+        let vrPlayerId = undefined
+        attConsole.onMessage = async ( message ) => {
+            console.log( "hand_camera_toggle", message )
+            if ( !!message.data.Command.FullName )
+            {
+                switch( message.data.Command.FullName )
+                {
+                    case "player.detailed":
+                        console.log( message.data.Result.Body )
+                        vrPlayerId = message.data.Result.Body.Identifier
+                        await attConsole.send(`select find ${attSession.getUserId()} 10`)
+                    break
+
+                    case "select.find":
+                        console.log( message.data.Result )
+                        let handCameras = message.data.Result.filter( item => item.Name == `Hand Camera(Clone)` )
+                        console.log( "hand cameras are: ", handCameras )
+                        if ( handCameras.length > 0 )
+                        {
+                            for ( let i = 0; i < handCameras.length; i++ )
+                            {
+                                await attConsole.send(`select get ${handCameras[i].Identifier}`)
+                            }
+                        } else {
+                            handCameraState = false
+                            wsSendJSON({ 'result': 'Fail', 'message': 'Player camera was not found', data: data })
+                        }
+                    break
+
+                    case "select.get":
+                        if ( !!message.data.Result )
+                        {
+                            if ( `${message.data.Result.PrefabHash}` == '59806')
+                            {
+                                let handCamera = message.data.Result
+                                if ( handCamera.ChunkingParent == vrPlayerId )
+                                {
+                                    console.log( "Found player camera, starting tracking")
+                                    handCameraFollow( handCamera, vrPlayerId )
+                                    wsSendJSON({result: 'OK', data: data})
+                                }
+                            }
+                        }
+                    break
+                }
+            }
+        }
+
+        await attConsole.send(`player detailed ${attSession.getUserId()}`)
+    } else {
+        handCameraState = false
+        wsSendJSON({result: 'OK', data: data})
+    }
+})
+
+async function handCameraFollow( cam, vrPlayerId )
+{
+    let maxHeightDelta = 0.2 //meters
+    let maxRadiusDelta = 0.2 //meters
+    let heightOffset = 1 // this places cam height 0 closer to the ground
+    let vrPlayerTargetId = vrPlayerId + 4
+
+    // Generate a set of 3D buffer objects to manipulate
+    var origin = new THREE.Vector3( 0, 0, 0 )
+    var defMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+    let geometry = new THREE.BoxBufferGeometry( 0.1,0.1,0.1 )
+
+    var camGroup = new THREE.Group()
+    camGroup.name = "cameraFollowGroup"
+    camGroup.rotation.set( 0,0,0, rotationEulerOrder )
+
+    let cameraObj = new THREE.Mesh( geometry, defMaterial )
+    cameraObj.name = `camera`
+    cameraObj.position.set( cam.Position[0], cam.Position[1], cam.Position[2] )
+
+    let vrpObj = new THREE.Mesh( geometry, defMaterial )
+    vrpObj.name = `player`
+
+    camGroup.add( vrpObj )
+    camGroup.add( cameraObj )
+
+    let cPos = new THREE.Vector3
+    let vPos = new THREE.Vector3
+    let cNorm = new THREE.Vector3 // normalized position of camera
+    let zNorm = new THREE.Vector3 // normal unit vector, manitude 1 on z axis (north)
+    let cQuat = new THREE.Quaternion // the quaternion angle(s) represented by cNorm and zNorm normals
+    let cEul = new THREE.Euler // the Euler angle represented by cQuat along rotationEulerOrder
+    let orbitAxis = new THREE.Vector3( 0, 1, 0 ).normalize()
+    let prevCameraPos = new THREE.Vector3( 0,0,0 )
+    let prevCameraRot = new THREE.Euler()
+    let vrpRotY = 0
+
+    console.log( "handCameraFollow: ", cam, vrPlayerId )
+
+    if ( !!handCameraState )
+    {
+        attConsole.send(`select ${cam.Identifier}`)
+        lookAtUpdate()
+    }
+
+    async function lookAtUpdate() {
+        if ( !!handCameraState )
+        {
+            attConsole.send(`select get ${vrPlayerTargetId}`)
+            updateCameraPos()
+            setTimeout( () => { lookAtUpdate() }, handCameraPose.updateRate )
+        }
+    }
+
+    async function updateCameraPos() {
+        if( !!handCameraState )
+        {
+            let pose = handCameraPose
+            cameraObj.getWorldPosition( cPos )
+            vrpObj.getWorldPosition( vPos )
+
+            if ( vPos.distanceTo(origin) != 0 )
+            {
+
+                let cPosXZ = cPos.clone().setY( 0 )
+                let vPosXZ = vPos.clone().setY( 0 )
+
+                //console.log( "checking positions delta: ", cPos, vPos, cPosXZ, vPosXZ )
+                let distance = cPosXZ.distanceTo( vPosXZ )
+                console.log( "distance to player: ", roundFloat( distance, 3  ) )
+                if ( roundFloat( distance, 3 ) > pose.radius )
+                {
+                    console.log( "distance limit reached" )
+                    let alpha = 1 - ( pose.radius / distance )
+                    cPosXZ.x = cPosXZ.x + ( ( vPosXZ.x - cPosXZ.x ) * alpha )
+                    cPosXZ.z = cPosXZ.z + ( ( vPosXZ.z - cPosXZ.z ) * alpha )
+                }
+                if ( pose.radiusLock && distance < pose.radius )
+                {
+                    console.log( "min distance reached" )
+                    let alpha = 1 - ( distance / pose.radius )
+                    cPosXZ.x = cPosXZ.x - ( ( vPosXZ.x - cPosXZ.x ) * alpha )
+                    cPosXZ.z = cPosXZ.z - ( ( vPosXZ.z - cPosXZ.z ) * alpha )
+                }
+                if ( cPos.y > pose.height + ( vPos.y + maxHeightDelta - heightOffset ) ) {
+                    console.log( "max height reached")
+                    cPos.y = pose.height + vPos.y + maxHeightDelta - heightOffset
+                } else if ( cPos.y <  pose.height + ( vPos.y - maxHeightDelta - heightOffset ) ) {
+                    console.log( "min height reached" )
+                    cPos.y = pose.height + ( vPos.y - maxHeightDelta - heightOffset )
+                }
+
+                // Set the new position
+                cameraObj.position.set( cPosXZ.x, cPos.y, cPosXZ.z )
+
+                // Translate the orbit position if required
+                if ( pose.orbitLock )
+                {
+                    // Move the camera toward an origin at the player's position
+                    cameraObj.position.sub( vPos )
+                    cNorm = cameraObj.position.clone().setY(0).normalize()
+                    zNorm = origin.clone().setZ(1)
+                    cQuat.setFromUnitVectors( zNorm, cNorm )
+                    cEul.setFromQuaternion( cQuat, rotationEulerOrder )
+                    console.log( "y rotation is: " + rad2deg( cEul.y ))
+                    // Reset the pivot
+                    cameraObj.position.applyAxisAngle( orbitAxis, -1 * cEul.y )
+                    // Apply the new pivot
+                    cameraObj.position.applyAxisAngle( orbitAxis, deg2rad( pose.orbitAngle + vrpRotY ) )
+                    cameraObj.position.add( vPos )
+                }
+
+                if ( cameraObj.position.distanceTo( prevCameraPos ) != 0 )
+                {
+                    let newPos = new THREE.Vector3()
+                    cameraObj.getWorldPosition( newPos )
+                    prevCameraPos = newPos
+                    console.log( `select move exact ${newPos.x},${newPos.y},${newPos.z}` )
+                    attConsole.send( `select move exact ${newPos.x},${newPos.y},${newPos.z}` )
+                }
+
+                cameraObj.lookAt( vPos )
+                camGroup.updateMatrixWorld()
+
+                let newRot = new THREE.Euler()
+                let newQuat = new THREE.Quaternion()
+                cameraObj.getWorldQuaternion( newQuat )
+                newRot.setFromQuaternion( newQuat, rotationEulerOrder )
+                let hasRotated =
+                    roundFloat( newRot.x, 6 ) != roundFloat( prevCameraRot.x, 6 ) ||
+                    roundFloat( newRot.y, 6 ) != roundFloat( prevCameraRot.y, 6 ) ||
+                    roundFloat( newRot.z, 6 ) != roundFloat( prevCameraRot.z, 6 )
+                if ( hasRotated )
+                {
+                    console.log(`select rotate exact ${ rad2deg( newRot.x )},${ rad2deg(newRot.y) },${ rad2deg(newRot.z) }`)
+                    attConsole.send(`select rotate exact ${ rad2deg( newRot.x )},${ rad2deg(newRot.y) },${ rad2deg(newRot.z) }`)
+                    prevCameraRot = newRot
+                }
+            }
+        }
+    }
+
+    attConsole.onMessage = async (message) => {
+        //console.log( "handCameraFollow message: ", message )
+        if ( !!message.data.Command.FullName )
+        {
+            switch( message.data.Command.FullName )
+            {
+                case "select.get":
+
+                    if ( `${message.data.Result.Identifier}` == `${vrPlayerTargetId}` )
+                    {
+                        // Update player position
+                        let vrplayer = message.data.Result
+                        vrpObj.position.set( vrplayer.Position[0], vrplayer.Position[1], vrplayer.Position[2] )
+                        vrpRotY = vrplayer.Rotation[1]
+                    }
+                break
+            }
+        }
+    }
+
+}
+
+wsAddHandler("hand_camera_pose", ( data ) => {
+    console.log( "hand_camera_pose: ", data )
+    if ( !!data.attribute )
+    {
+        handCameraPose[ data.attribute ] = data.value
     }
 })
 
@@ -1874,4 +2121,10 @@ function deg2rad( angle )
 function parseBool(val)
 {
     return val === true || val === "true"
+}
+
+function roundFloat( val, decimalPlaces )
+{
+    let res = Number(  Math.round( `${val}e${decimalPlaces}` ) + `e-${decimalPlaces}` )
+    return ( !!res ) ? res : 0
 }
