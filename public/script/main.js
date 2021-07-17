@@ -21,16 +21,31 @@ $(document).ready(() => {
     function controlClickSetup( element, action, direction )
     {
         var cclickInterval = ControlKeyInterval
-        var cclickTimeout    
-        $("#"+ element).on('mousedown', ( e ) => {
+        var cclickTimeout
+        let startEvents = ( e ) => {
             cclickTimeout = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
             highlight( $("#"+element), "20, 255, 20" )
-        }).on('mouseup mouseleave', ()=>{
+        }
+        let endEvents = ( e ) => {
             if ( !!cclickTimeout ) {
                 flash( $("#"+element), "20, 255, 20" )
                 clearTimeout( cclickTimeout )
                 cclickTimeout = undefined
             }
+        }
+
+        $("#"+ element).on('touchstart', (e) => {
+            startEvents(e)
+            e.preventDefault()
+        }).on('touchend touchcancel', (e) => {
+            endEvents(e)
+            e.preventDefault()
+        })
+
+        $("#"+ element).on('mousedown', ( e ) => {
+            startEvents( e )
+        }).on('mouseup mouseleave', ()=>{
+            endEvents( e )
         })
     }
 
