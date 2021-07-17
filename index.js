@@ -16,9 +16,6 @@ const session = require('express-session')
 const bodyParser = require('body-parser')
 const fileUpload = require('express-fileupload')
 
-
-var Datastore = require('nedb')
-var spawnables = new Datastore({ filename: path.join(__dirname, 'data/spawnables.db'), autoload: true })
 var spawnableItemsList = []
 var loadedPrefabLists = {}
 var subscriptionList = []
