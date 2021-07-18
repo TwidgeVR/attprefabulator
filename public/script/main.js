@@ -37,15 +37,17 @@ $(document).ready(() => {
         $("#"+ element).on('touchstart', (e) => {
             startEvents(e)
             e.preventDefault()
-        }).on('touchend touchcancel', (e) => {
+        }).on('touchend touchcancel', ( e ) => {
             endEvents(e)
             e.preventDefault()
         })
 
         $("#"+ element).on('mousedown', ( e ) => {
             startEvents( e )
-        }).on('mouseup mouseleave', ()=>{
+            e.preventDefault()
+        }).on('mouseup mouseleave', ( e )=>{
             endEvents( e )
+            e.preventDefault()
         })
     }
 
