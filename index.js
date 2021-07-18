@@ -71,6 +71,7 @@ function wsSendJSON( data )
 }
 
 // Main connections (used by websocket handlers)
+var attAccess;
 var attSession;
 var attServer;
 // The websocket connections to server
@@ -85,6 +86,12 @@ function ts()
     return "["+ moment().format() +"]"
 }
 
+function setAccess( serverId )
+{
+    var { JsapiAccessProvider } = require('att-websockets/dist/connection')
+    attAccess = new JsapiAccessProvider( serverId, attServer )
+}
+
 function setConnection( serverName )
 {
     var { Connection } = require('att-websockets')
@@ -92,19 +99,19 @@ function setConnection( serverName )
     // so remove the cache entry after loading
     delete require.cache[require.resolve('att-websockets')]
 
-    attConsole = new Connection( serverName )
+    attConsole = new Connection( attAccess, serverName )
     attConsole.onError = ( e ) => {
         console.log( e )
         throw( e )
     }
 }
 
-function setSubscrptionsConnection( serverName )
+function setSubscriptionsConnection( serverName )
 {
     var { Connection } = require('att-websockets')
     delete require.cache[require.resolve('att-websockets')]
 
-    attSubscriptions = new Connection( serverName )
+    attSubscriptions = new Connection( attAccess, serverName )
     attSubscriptions.onError = ( e ) => {
         console.log( e )
         throw( e )
@@ -122,7 +129,7 @@ function setSaveLoadConnection( serverName )
     var { Connection } = require('att-websockets')
     delete require.cache[require.resolve('att-websockets')]
 
-    attSaveLoad = new Connection( serverName )
+    attSaveLoad = new Connection( attAccess, serverName )
     attSaveLoad.onError = ( e ) => {
         console.log( e )
         throw( e )
@@ -137,9 +144,9 @@ function setSaveLoadConnection( serverName )
 
 function setATTSession( )
 {
-    var { Sessions, Servers } = require('alta-jsapi')
+    var { Sessions, Servers } = require('alta-jsapi')    
     attSession = Sessions
-    attServer = Servers
+    attServer = Servers    
 }
 
 function authenticated( req )
@@ -303,34 +310,56 @@ server.get('/servers', asyncMid( async (req, res, next) => {
 server.post('/servers', asyncMid( async(req, res, next) =>{
     if ( authenticated(req) )
     {
-        var servers = await attServer.getOnline()
+        var servers = await attServer.getConsoleServers();
         var serverId = req.body.selectedServer;
         var selectedServer = servers.find( item => item.id.toString() == serverId )
         console.log( req.body )
         console.log( selectedServer )
+
         try {
             var details = await attServer.joinConsole( serverId )
-            if ( details.allowed )
-            {
-                console.log( "Connecting to server: "+ selectedServer.name )
-                setConnection( selectedServer.name )
-                setSubscrptionsConnection( selectedServer.Name )
-                setSaveLoadConnection( selectedServer.name )
-                await attConsole.connect( details.connection.address, details.connection.websocket_port, details.token )
-                await attSubscriptions.connect( details.connection.address, details.connection.websocket_port, details.token )
-                await attSaveLoad.connect( details.connection.address, details.connection.websocket_port, details.token )
-                console.log("Connected to server: "+ selectedServer.name )
-                res.redirect('/control?serverName='+ selectedServer.name )
-                return
-            } else {
-                console.log("Error connecting to server: ")
-                console.log( details )
-                res.redirect('/servers?error='+ details.message )
-                return
-            }
+            console.log( details )
         } catch (e) {
             console.log("Error connecting to server:"+ e.message)
             res.redirect('/servers?error='+ e.message )
+            return
+        }
+
+        if ( details.allowed )
+        {
+            console.log( "Connecting to server: "+ selectedServer.name )
+            setAccess( serverId )
+            setConnection( selectedServer.name )            
+            setSubscriptionsConnection( selectedServer.Name )
+            setSaveLoadConnection( selectedServer.name )
+            try {
+                console.log( "Connecting Console handler")
+                await attConsole.open()
+            } catch ( e ) {
+                console.log( "Error attaching to console: "+ e.message )
+                return
+            }
+            try {
+                console.log( "Connecting Subscriptions handler")
+                await attSubscriptions.open()
+            } catch ( e ) {
+                console.log( "Error attaching to Subscriptions handler: "+ e.message )
+                return
+            }
+            try {
+                console.log( "Connecting save/load prefabs handler")
+                await attSaveLoad.open()
+            } catch ( e ) {
+                console.log( "Error attaching to save/load handler: "+ e.message )
+                return
+            }
+            console.log("Connected to server: "+ selectedServer.name )
+            res.redirect('/control?serverName='+ selectedServer.name )
+            return
+        } else {
+            console.log("Error connecting to server: ")
+            console.log( details )
+            res.redirect('/servers?error='+ details.message )
             return
         }
     } else {
