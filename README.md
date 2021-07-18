@@ -11,6 +11,10 @@ https://github.com/edencomputing/attprefabulator/releases/
 <a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.8.2 - Fixed an issue with connecting to servers. Disabled the hand camera follow feature, this is too resource intensive on the server right now.  Added a new app icon by Gasher!  Thanks Gasher!
+
+- v1.8.1 - Added touch input support, which also fixes using Control buttons with Oculus touch trigger input.  Updated some dependencies that had security concerns.
+
 - v1.8.0 - Experimental hand camera follow feature
 
 - v1.7.0 - Snap groups to ground! Fixed issue with accidentally deleting yourself or other protected prefabs as part of a group. Cloning regular objects works now!.  Cloned objects will also spawn offset by 1 meter in the 'up' direction for visibility. Cloning now uses the save/load connection to prevent interruption since it can take some time on large groups.
@@ -62,7 +66,7 @@ https://github.com/edencomputing/attprefabulator/releases/
 #### Known issues:
 - ~~can only be used by one person at a time on each server, one person selecting items breaks the other player's selections~~
 
-- ~~Prefabulator movement controls do not currently work using Oculus dashboard.  I recommend running through SteamVR and using an overlay tool like OVRToolkit or OVRDrop in the meantime.~~ Use the A button on the controller to interact with Prefabulator window controls.  For some reason using the trigger is not sending a complete 'click' event, but using A button allows the new click+hold behavior and acts more like a real mouseclick.
+- ~~Prefabulator movement controls do not currently work using Oculus dashboard.  I recommend running through SteamVR and using an overlay tool like OVRToolkit or OVRDrop in the meantime. Use the A button on the controller to interact with Prefabulator window controls.  For some reason using the trigger is not sending a complete 'click' event, but using A button allows the new click+hold behavior and acts more like a real mouseclick.~~
 
 - When a Group is selected, the 'look-at' and 'Snap Ground' commands will not work.  This is WIP.
 
