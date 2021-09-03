@@ -22,12 +22,13 @@ $(document).ready(() => {
     function controlClickSetup( element, action, direction )
     {
         var cclickInterval = ControlKeyInterval
+        var cclickIntervalDelay = ControlKeyIntervalDelay
         var cclickTimeoutHandle, cclickIntervalHandle
         let startEvents = ( e ) => {
             controlClick( action, direction, element )
             cclickTimeoutHandle = setTimeout( () => {
                 cclickIntervalHandle = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
-            }, ControlKeyIntervalDelay)
+            }, cclickIntervalDelay)
             
             highlight( $("#"+element), "20, 255, 20" )
         }
