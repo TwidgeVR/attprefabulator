@@ -6,6 +6,7 @@ var currentLoadedPrefabList = null;
 var prefabGroups = {};
 var nextPrefabGroupId = 1;
 var ControlKeyInterval = 100
+var ControlKeyIntervalDelay = 500
 
 $(document).ready(() => {
     $("i").each( ( ind, img ) => {
@@ -21,16 +22,23 @@ $(document).ready(() => {
     function controlClickSetup( element, action, direction )
     {
         var cclickInterval = ControlKeyInterval
-        var cclickTimeout
+        var cclickIntervalDelay = ControlKeyIntervalDelay
+        var cclickTimeoutHandle, cclickIntervalHandle
         let startEvents = ( e ) => {
-            cclickTimeout = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
+            controlClick( action, direction, element )
+            cclickTimeoutHandle = setTimeout( () => {
+                cclickIntervalHandle = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
+            }, cclickIntervalDelay)
+            
             highlight( $("#"+element), "20, 255, 20" )
         }
         let endEvents = ( e ) => {
-            if ( !!cclickTimeout ) {
+            if ( !!cclickTimeoutHandle || !!cclickIntervalHandle ) {
                 flash( $("#"+element), "20, 255, 20" )
-                clearTimeout( cclickTimeout )
-                cclickTimeout = undefined
+                clearTimeout( cclickTimeoutHandle )
+                clearTimeout( cclickIntervalHandle )
+                cclickTimeoutHandle = undefined
+                cclickIntervalHandle = undefined
             }
         }
 
