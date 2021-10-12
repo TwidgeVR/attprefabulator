@@ -46,7 +46,7 @@
     "ws": "^7.5.3"
   },
   "devDependencies": {
-    "electron": "^13.1.7",
+    "electron": "^13.3.0",
     "electron-packager": "^15.2.0"
   }
 }
