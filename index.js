@@ -1948,12 +1948,20 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                     let gmplayer = ( !!req.body.player )
                         ? req.body.player
                         : userId
-                    let state = (req.body.value == "true")
-                    command = `player god-mode ${gmplayer} ${state}`
+                    let gmstate = (req.body.value == "true")
+                    command = `player god-mode ${gmplayer} ${gmstate}`
                     console.log( command )
                     await attConsole.send( command )
                 return
-
+                case "set_player_climbing":
+                    let cplayer = ( !!req.body.player )
+                        ? req.body.player
+                        : userId
+                    let cstate = (req.body.value == "true")
+                    command = `player set-unlock ${cplayer} 'Climbing Unlock' ${cstate}`
+                    console.log( command )
+                    await attConsole.send( command )
+                return
                 case "get_player_list":
                     command = "player list"
                     console.log( command )
@@ -1994,16 +2002,76 @@ server.post('/ajax', asyncMid( async( req, res, next ) => {
                 return;
 
                 case "player_kick":
-                        if ( !!req.body.player )
-                        {
-                            command = "player kick "+ req.body.player
-                            console.log( command )
-                            await attConsole.send( command )
-                        } else {
-                            res.send({'result': 'Fail'})
-                        }
+                    if ( !!req.body.player )
+                    {
+                        command = "player kick "+ req.body.player
+                        console.log( command )
+                        await attConsole.send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }
                 return;
-                        
+
+                case "player_level_up_mining":
+                    /*if ( !!req.body.player )
+                    {
+                        command = "player progression pathlevelup "+ req.body.player + " Mining"
+                        console.log( command )
+                        await attConsole.send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }*/
+                    console.log(`${req.body.player} Levelup in Mining`)
+                return;
+
+                case "player_level_up_woodcutting":
+                    /*if ( !!req.body.player )
+                    {
+                        command = "player progression pathlevelup "+ req.body.player + " WoodCutting"
+                        console.log( command )
+                        await attConsole.send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }*/
+                    console.log(`${req.body.player} Levelup in WoodCutting`)
+                return;
+
+                case "player_level_up_melee":
+                    /*if ( !!req.body.player )
+                    {
+                        command = "player progression pathlevelup "+ req.body.player + " Melee"
+                        console.log( command )
+                        await attConsole.send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }*/
+                    console.log(`${req.body.player} Levelup in Melee`)
+                return;
+
+                case "player_level_up_ranged":
+                    /*if ( !!req.body.player )
+                    {
+                        command = "player progression pathlevelup "+ req.body.player + " Ranged"
+                        console.log( command )
+                        await attConsole.send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }*/
+                    console.log(`${req.body.player} Levelup in Ranged`)
+                return;
+
+                case "player_level_up_forging":
+                    /*if ( !!req.body.player )
+                    {
+                        command = "player progression pathlevelup "+ req.body.player + " Forging"
+                        console.log( command )
+                        await attConsole.send( command )
+                    } else {
+                        res.send({'result': 'Fail'})
+                    }*/
+                    console.log(`${req.body.player} Levelup in Forging`)
+                return;
+
                 default:
                     res.send({'result':'Unknown Endpoint'})
                 return;

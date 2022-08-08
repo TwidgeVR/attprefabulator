@@ -6,6 +6,7 @@ var currentLoadedPrefabList = null;
 var prefabGroups = {};
 var nextPrefabGroupId = 1;
 var ControlKeyInterval = 100
+var ControlKeyIntervalDelay = 500
 
 $(document).ready(() => {
     $("i").each( ( ind, img ) => {
@@ -21,16 +22,23 @@ $(document).ready(() => {
     function controlClickSetup( element, action, direction )
     {
         var cclickInterval = ControlKeyInterval
-        var cclickTimeout
+        var cclickIntervalDelay = ControlKeyIntervalDelay
+        var cclickTimeoutHandle, cclickIntervalHandle
         let startEvents = ( e ) => {
-            cclickTimeout = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
+            controlClick( action, direction, element )
+            cclickTimeoutHandle = setTimeout( () => {
+                cclickIntervalHandle = setInterval( ()=>controlClick( action, direction, element ), cclickInterval )
+            }, cclickIntervalDelay)
+
             highlight( $("#"+element), "20, 255, 20" )
         }
         let endEvents = ( e ) => {
-            if ( !!cclickTimeout ) {
-                flash( $("#"+element), "20, 255, 20" )
-                clearTimeout( cclickTimeout )
-                cclickTimeout = undefined
+            if ( !!cclickTimeoutHandle || !!cclickIntervalHandle ) {
+            flash( $("#"+element), "20, 255, 20" )
+            clearTimeout( cclickTimeoutHandle )
+            clearTimeout( cclickIntervalHandle )
+            cclickTimeoutHandle = undefined
+            cclickIntervalHandle = undefined
             }
         }
 
@@ -760,6 +768,9 @@ $(document).ready(() => {
         if ( name == 'godmode' ) {
             dataSet.action = 'set_player_godmode'
         }
+        if ( name == 'climbing' ) {
+            dataSet.action = 'set_player_climbing'
+        }
         if ( toggler.hasClass('numeric') )
         {
             value = ( value ) ? 1 : 0;
@@ -1273,6 +1284,51 @@ $(document).ready(() => {
         dataSet = {
             'action': 'player_kick',
             'player': player
+        }
+        $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
+            .done( (data) => {
+                console.log( data )
+                if ( data.result == 'OK' )
+                {
+                    flash( e.currentTarget, "20, 255, 20" )
+                } else {
+                    flash( e.currentTarget, "255, 20, 20")
+                }
+            })
+    })
+    
+    $("a#PlayerLevelUp").click(( e ) => {
+        let player = selectedPlayerId
+        let name = e.currentTarget.name
+        if(name == "Mining"){
+            dataSet = {
+                'action': 'player_level_up_mining',
+                'player': player
+            }
+        }
+        if(name == "WoodCutting"){
+            dataSet = {
+                'action': 'player_level_up_woodcutting',
+                'player': player
+            }
+        }
+        if(name == "Melee"){
+            dataSet = {
+                'action': 'player_level_up_melee',
+                'player': player
+            }
+        }
+        if(name == "Ranged"){
+            dataSet = {
+                'action': 'player_level_up_ranged',
+                'player': player
+            }
+        }
+        if(name == "Forging"){
+            dataSet = {
+                'action': 'player_level_up_forging',
+                'player': player
+            }
         }
         $.ajax({ type: 'post', url: '/ajax', data: dataSet, dataType: 'json' })
             .done( (data) => {
