@@ -1,6 +1,8 @@
 # Credit
-Prefabulator was made by Twidge https://github.com/TwidgeVR\n
-This version of prefabulator uses most of his code\n
+Prefabulator was made by Twidge https://github.com/TwidgeVR
+
+This version of prefabulator uses most of his code
+
 All I did was make some minor ajustments as well as add some new features
 
 # attprefabulator
