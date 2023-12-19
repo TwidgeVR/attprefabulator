@@ -1,5 +1,9 @@
-# attprefabulator
+# Credit
+Prefabulator was made by Twidge https://github.com/TwidgeVR
+This version of prefabulator uses most of his code
+All I did was make some minor ajustments as well as add some new features
 
+# attprefabulator
 Add, remove and modify prefabs in A Township Tale
 
 This browser based application gives a click-driven abstraction to the A Township Tale console's command set
