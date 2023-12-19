@@ -6,11 +6,13 @@ This browser based application gives a click-driven abstraction to the A Townshi
 
 ### Download
 You can download the latest (Windows) executable version of Prefabulator here:
-https://github.com/edencomputing/attprefabulator/releases/
+https://github.com/Jaredy00/attprefabulator/releases/
 
-<a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
+<a href="https://github.com/Jaredy00/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.9.0 - Fixed Set-Home, Updated Teleport locations, Added Tab for giving players levels and Updated Server settings
+
 - v1.8.2 - Fixed an issue with connecting to servers. Disabled the hand camera follow feature, this is too resource intensive on the server right now.  Added a new app icon by Gasher!  Thanks Gasher!
 
 - v1.8.1 - Added touch input support, which also fixes using Control buttons with Oculus touch trigger input.  Updated some dependencies that had security concerns.

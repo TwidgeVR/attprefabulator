@@ -9,7 +9,17 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "server": "node index.js",
     "dev": "nodemon --ignore data/ --ignore sessions/ --ignore main.js index.js",
-    "electron": "electron electron-start.js"
+    "electron": "electron electron-start.js",
+    "package": "electron-packager . Prefabulator --platform=win32 --arch=x64 --overwrite --icon=./attprefabulator.ico --prune=false"
+  },
+  "bin": "index.js",
+  "pkg": {
+    "assets": [
+      "node_modules/**/*",
+      "views/**/*",
+      "public/**/*"
+    ],
+    "output": "dist"
   },
   "repository": {
     "type": "git",
@@ -19,7 +29,7 @@
     "township",
     "utility"
   ],
-  "author": "Twidge",
+  "author": "Twidge, Jaredy00",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/edencomputing/attprefabulator/issues"
@@ -27,7 +37,8 @@
   "homepage": "https://github.com/edencomputing/attprefabulator#readme",
   "dependencies": {
     "alta-jsapi": "git+https://github.com/alta-vr/alta-jsapi.git",
-    "att-bot-core": "git+https://github.com/alta-vr/ATT-Bot-JS.git",
+    "att-bot-core": "file:../att-bot-core",
+    "att-websockets": "github:alta-vr/att-websockets",
     "body-parser": "^1.19.0",
     "clone": "^2.1.2",
     "cookie-parser": "^1.4.5",
@@ -38,6 +49,7 @@
     "g": "^2.0.1",
     "ieee754": "^1.2.1",
     "moment": "^2.29.1",
+    "node": "^12.10.0",
     "nodemon": "^2.0.4",
     "path": "^0.12.7",
     "pug": "^3.0.2",

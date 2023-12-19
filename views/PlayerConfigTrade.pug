@@ -13,6 +13,17 @@ div#PlayerConfigTradeDialog.Controls.w-100.pt-2.pb-2
             if spawnableItems
                 each item in spawnableItems
                     a.list-group-item.text-left(id=item.Hash name=item.Name) #{item.Hash} - #{item.Name}
+    div.ControlsMini.d-flex.w-100.m-0
+        span(class="col-7 text-left align-middle")
+            b Scale
+        span(class="col text-center align-middle px-0")
+            a#SpawnScaleMinus(class="text-center")
+                i(class="fas fa-minus")
+        span(class="col-2 text-center align-middle px-1")
+            input#SpawnScale.form-control(name="SpawnScale" class="px-1" type="text" value="1")
+        span(class="col text-center align-middle px-1")
+            a#SpawnScalePlus(class="text-center")
+                i(class="fas fa-plus")
 
     div.ControlsMini.d-flex.w-100.m-0
         i.fas.fa-code.px-2
