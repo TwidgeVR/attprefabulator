@@ -1,4 +1,4 @@
-# Credit
+# Credits
 Prefabulator was made by Twidge https://github.com/TwidgeVR
 
 This version of prefabulator uses most of his code
@@ -81,7 +81,7 @@ https://github.com/Jaredy00/attprefabulator/releases/
 ## Usage 
 
 It's recommended to use the latest release version found here:
-https://github.com/edencomputing/attprefabulator/releases/
+https://github.com/Jaredy00/attprefabulator/releases/
 
 Simply download the version for your operating system, extract the files, and run attPrefabulator
 
@@ -100,7 +100,7 @@ At this point, restart your PC to make sure the PATH is correctly set
 Open a command prompt or terminal and type
 
 ```
-git clone https://github.com/edencomputing/attprefabulator.git
+git clone https://github.com/Jaredy00/attprefabulator.git
 
 cd attprefabulator/
 ```
