@@ -1166,6 +1166,16 @@ $(document).ready(() => {
                 if ( data.result == 'OK' )
                 {
                     flash( e.currentTarget, "20, 255, 20")
+                    if ( !!data.data.Result )
+                    {
+                        selectedPrefabId = data.data.Result[0].Identifier
+                        $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
+                        let pname = selectedPrefabId +" - "+ data.data.Result[0].Name
+                        $("#SelectedPrefabSelect").append(
+                            new Option( pname, selectedPrefabId, false, true )
+                        )
+                        $('#DestroySelectedPrefab').show()
+                    }
                 } else {
                     flash( e.currentTarget, "255, 20, 20")
                 }
