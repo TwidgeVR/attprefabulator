@@ -8,7 +8,7 @@ div#ConfigurePlayers.Message(class="container hidden" style="padding-top: 5px;")
         div.ContentRow(class="row")
             div.col-auto.mr-auto
                 h4#ConfigurePlayersPlayer.px-1.py-2 Select a player
-            div.PlayerNavControls.col-6.ml-auto
+            div.PlayerNavControls.col-7.ml-auto
                 div.row
                     a#PlayerConfigStats.PlayerNav.ControlsMini.col.ml-auto.text-center.active
                         i(class="fas fa-user-edit fa-2x" title="Player Stats")
@@ -16,6 +16,8 @@ div#ConfigurePlayers.Message(class="container hidden" style="padding-top: 5px;")
                         i(class="fas fa-street-view fa-2x" title="Teleport")
                     a#PlayerConfigTrade.PlayerNav.ControlsMini.col.ml-auto.text-center
                         i(class="fas fa-gift fa-2x" title="Send to Player")
+                    a#PlayerConfigLevel.PlayerNav.ControlsMini.col.ml-auto.text-center
+                        i(class="fas fa-dumbbell fa-2x" title="Player Level")
                     a#PlayerConfigAdmin.PlayerNav.ControlsMini.col.ml-auto.text-center
                         i(class="fas fa-user-shield fa-2x" title="Moderation")
 
@@ -27,6 +29,9 @@ div#ConfigurePlayers.Message(class="container hidden" style="padding-top: 5px;")
 
         div#PlayerConfigTrade.PlayerConfigDialog(class="hidden")
             include PlayerConfigTrade.pug
+
+        div#PlayerConfigLevel.PlayerConfigDialog(class="hidden")
+            include PlayerConfigLevel.pug
 
         div#PlayerConfigAdmin.PlayerConfigDialog(class="hidden")
             include PlayerConfigAdmin.pug

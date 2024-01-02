@@ -172,7 +172,10 @@ a {
     display: inline-block;
     overflow: auto;
     align-items: center;
-    margin: 5px;
+    margin-top:5px;
+    margin-bottom:5px;
+    margin-left:4px;
+    margin-right:4px;
     padding: 5px;
     border-bottom: var(--ui-shawdow-border);
     box-shadow: var(--ui-shawdow);

@@ -7,6 +7,13 @@ div#PlayerSettingStats.list-group(style="max-height: 500px;")
                 a.TogglePlayerConfig(name='godmode')
                     i#togglegodmode.Toggle(class="fas fa-toggle-off")
     div.list-group-item.noborder.p-1.m-0
+        div.PlayerSetting.ControlsMini.mb-1(class="row d-flex")
+            span(class="col-8 text-left align-middle")
+                b Climbing
+            span(class="col text-right align-middle")
+                a.TogglePlayerConfig(name='climbing')
+                    i#toggleclimbing.Toggle(class="fas fa-toggle-off")
+    div.list-group-item.noborder.p-1.m-0
         div.PlayerSetting.ControlsMini.mb-1(name="health" class="row d-flex")
             span(class="col-7 text-left align-middle")
                 b Health

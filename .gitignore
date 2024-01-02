@@ -63,3 +63,8 @@ typings/
 # Session data
 sessions/
 
+# Credentials 
+data/credentials.json
+
+# Builds
+attPrefabulator-*

@@ -1,16 +1,26 @@
-# attprefabulator
+# Credits
+Prefabulator was made by Twidge https://github.com/TwidgeVR
 
+This version of prefabulator uses most of his code
+
+All I did was make some minor ajustments as well as add some new features
+
+# attprefabulator
 Add, remove and modify prefabs in A Township Tale
 
 This browser based application gives a click-driven abstraction to the A Township Tale console's command set
 
 ### Download
 You can download the latest (Windows) executable version of Prefabulator here:
-https://github.com/edencomputing/attprefabulator/releases/
+https://github.com/Jaredy00/attprefabulator/releases/
 
-<a href="https://github.com/edencomputing/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
+<a href="https://github.com/Jaredy00/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.9.1 - Items spawned on other players in the gift tab are now controllable from the control tab
+
+- v1.9.0 - Fixed Set-Home, Updated Teleport locations, Added Tab for giving players levels and Updated Server settings
+
 - v1.8.2 - Fixed an issue with connecting to servers. Disabled the hand camera follow feature, this is too resource intensive on the server right now.  Added a new app icon by Gasher!  Thanks Gasher!
 
 - v1.8.1 - Added touch input support, which also fixes using Control buttons with Oculus touch trigger input.  Updated some dependencies that had security concerns.
@@ -73,7 +83,7 @@ https://github.com/edencomputing/attprefabulator/releases/
 ## Usage 
 
 It's recommended to use the latest release version found here:
-https://github.com/edencomputing/attprefabulator/releases/
+https://github.com/Jaredy00/attprefabulator/releases/
 
 Simply download the version for your operating system, extract the files, and run attPrefabulator
 
@@ -92,7 +102,7 @@ At this point, restart your PC to make sure the PATH is correctly set
 Open a command prompt or terminal and type
 
 ```
-git clone https://github.com/edencomputing/attprefabulator.git
+git clone https://github.com/Jaredy00/attprefabulator.git
 
 cd attprefabulator/
 ```
