@@ -1,6 +1,6 @@
 {
   "name": "prefabulator",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "productName": "Prefabulator",
   "description": "Add, remove and modify prefabs in A Township Tale",
   "main": "electron-start.js",
@@ -10,7 +10,7 @@
     "server": "node index.js",
     "dev": "nodemon --ignore data/ --ignore sessions/ --ignore main.js index.js",
     "electron": "electron electron-start.js",
-    "package": "electron-packager . attPrefabulator-1.9.1 --platform=win32 --arch=x64 --overwrite --icon=./attprefabulator.ico --prune=false"
+    "package": "electron-packager . attPrefabulator-1.9.2 --platform=win32 --arch=x64 --overwrite --icon=./attprefabulator.ico --prune=false"
   },
   "bin": "index.js",
   "pkg": {

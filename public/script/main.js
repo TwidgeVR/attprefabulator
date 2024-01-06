@@ -3,6 +3,7 @@ var selectedPlayerName = null;
 var selectedConfigForm = null;
 var currentPlayersList = null;
 var currentLoadedPrefabList = null;
+let spawnedItems = {};
 var prefabGroups = {};
 var nextPrefabGroupId = 1;
 var ControlKeyInterval = 100
@@ -1168,6 +1169,8 @@ $(document).ready(() => {
                     flash( e.currentTarget, "20, 255, 20")
                     if ( !!data.data.Result )
                     {
+                        let itemId = data.data.Result[0].Identifier;
+                        spawnedItems[itemId] = { playerId: player };
                         selectedPrefabId = data.data.Result[0].Identifier
                         $("#SelectedPrefabSelect option[value="+ selectedPrefabId +"]").remove()
                         let pname = selectedPrefabId +" - "+ data.data.Result[0].Name
@@ -1785,7 +1788,8 @@ $(document).ready(() => {
         let optSelected = $("#SelectedPrefabSelect").find("option:selected").val()
         if ( optSelected !== 'None' )
         {
-            let player = $("input#PlayerConfigUserId").val()
+            let selectedItemData = spawnedItems[optSelected];
+            let player = selectedItemData ? selectedItemData.playerId : $("input#PlayerConfigUserId").val();
             console.log( "copy selected prefab: ", optSelected )
             wsSendJSON({ 'action': 'clone_prefab', 'player': player, 'hash': optSelected })
             spinnerReplace( "CopySelectedPrefab" )

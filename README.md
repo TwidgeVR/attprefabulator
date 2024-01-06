@@ -17,6 +17,8 @@ https://github.com/Jaredy00/attprefabulator/releases/
 <a href="https://github.com/Jaredy00/attprefabulator/releases/"><img src="public/images/prefabulator_controls.png" width="30%" height="30%" alt="Prefab Controls"></a>
 
 ### Release Notes
+- v1.9.2 - Fixed Copy button to spawn items based on original player it was spawned on
+
 - v1.9.1 - Items spawned on other players in the gift tab are now controllable from the control tab
 
 - v1.9.0 - Fixed Set-Home, Updated Teleport locations, Added Tab for giving players levels and Updated Server settings
